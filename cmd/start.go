@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/bestruirui/go-backend-template/internal/conf"
-	"github.com/bestruirui/go-backend-template/internal/db"
-	"github.com/bestruirui/go-backend-template/internal/op"
-	_ "github.com/bestruirui/go-backend-template/internal/server/handlers"
-	"github.com/bestruirui/go-backend-template/internal/server/middleware"
-	"github.com/bestruirui/go-backend-template/internal/server/router"
-	"github.com/bestruirui/go-backend-template/internal/utils/log"
-	"github.com/bestruirui/go-backend-template/internal/utils/shutdown"
+	"github.com/bestruirui/octopus/internal/conf"
+	"github.com/bestruirui/octopus/internal/db"
+	"github.com/bestruirui/octopus/internal/op"
+	_ "github.com/bestruirui/octopus/internal/server/handlers"
+	"github.com/bestruirui/octopus/internal/server/middleware"
+	"github.com/bestruirui/octopus/internal/server/router"
+	"github.com/bestruirui/octopus/internal/utils/log"
+	"github.com/bestruirui/octopus/internal/utils/shutdown"
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/cobra"
 )
@@ -56,6 +56,11 @@ var startCmd = &cobra.Command{
 			return
 		}
 		sd.Register(db.Close)
+
+		if err := op.InitCache(); err != nil {
+			log.Errorf("cache init error: %v", err)
+			return
+		}
 
 		if err := op.UserInit(); err != nil {
 			log.Errorf("user init error: %v", err)

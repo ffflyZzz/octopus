@@ -3,8 +3,8 @@ package db
 import (
 	"strings"
 
-	"github.com/bestruirui/go-backend-template/internal/conf"
-	"github.com/bestruirui/go-backend-template/internal/model"
+	"github.com/bestruirui/octopus/internal/conf"
+	"github.com/bestruirui/octopus/internal/model"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -32,7 +32,15 @@ func InitDB() error {
 	if err != nil {
 		return err
 	}
-	return db.AutoMigrate(new(model.User))
+
+	return db.AutoMigrate(
+		&model.User{},
+		&model.Channel{},
+		&model.Group{},
+		&model.LLMModel{},
+		&model.APIKey{},
+		&model.Setting{},
+	)
 }
 
 func Close() error {

@@ -3,12 +3,12 @@ package handlers
 import (
 	"net/http"
 
-	"github.com/bestruirui/go-backend-template/internal/model"
-	"github.com/bestruirui/go-backend-template/internal/op"
-	"github.com/bestruirui/go-backend-template/internal/server/auth"
-	"github.com/bestruirui/go-backend-template/internal/server/middleware"
-	"github.com/bestruirui/go-backend-template/internal/server/resp"
-	"github.com/bestruirui/go-backend-template/internal/server/router"
+	"github.com/bestruirui/octopus/internal/model"
+	"github.com/bestruirui/octopus/internal/op"
+	"github.com/bestruirui/octopus/internal/server/auth"
+	"github.com/bestruirui/octopus/internal/server/middleware"
+	"github.com/bestruirui/octopus/internal/server/resp"
+	"github.com/bestruirui/octopus/internal/server/router"
 	"github.com/gin-gonic/gin"
 )
 
@@ -27,6 +27,10 @@ func init() {
 		AddRoute(
 			router.NewRoute("/change-username", http.MethodPost).
 				Handle(changeUsername),
+		).
+		AddRoute(
+			router.NewRoute("/status", http.MethodGet).
+				Handle(status),
 		)
 }
 
@@ -40,7 +44,7 @@ func login(c *gin.Context) {
 		resp.Error(c, http.StatusUnauthorized, resp.ErrUnauthorized)
 		return
 	}
-	token, expire, err := auth.GenerateToken(user.Expire)
+	token, expire, err := auth.GenerateJWTToken(user.Expire)
 	if err != nil {
 		resp.Error(c, http.StatusInternalServerError, resp.ErrInternalServer)
 		return
@@ -68,8 +72,12 @@ func changeUsername(c *gin.Context) {
 		return
 	}
 	if err := op.UserChangeUsername(user.NewUsername); err != nil {
-		resp.Error(c, http.StatusInternalServerError, resp.ErrDatabase)
+		resp.Error(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 	resp.Success(c, "username changed successfully")
+}
+
+func status(c *gin.Context) {
+	resp.Success(c, "ok")
 }

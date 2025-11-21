@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/bestruirui/go-backend-template/internal/utils/log"
+	"github.com/bestruirui/octopus/internal/utils/log"
 	"github.com/spf13/viper"
 )
 

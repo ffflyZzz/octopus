@@ -3,9 +3,9 @@ package op
 import (
 	"fmt"
 
-	"github.com/bestruirui/go-backend-template/internal/db"
-	"github.com/bestruirui/go-backend-template/internal/model"
-	"github.com/bestruirui/go-backend-template/internal/utils/log"
+	"github.com/bestruirui/octopus/internal/db"
+	"github.com/bestruirui/octopus/internal/model"
+	"github.com/bestruirui/octopus/internal/utils/log"
 )
 
 var userCache model.User
