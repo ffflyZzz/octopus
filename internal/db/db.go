@@ -4,8 +4,9 @@ import (
 	"strings"
 
 	"github.com/bestruirui/octopus/internal/model"
-	"gorm.io/driver/sqlite"
+	"github.com/glebarez/sqlite"
 	"gorm.io/gorm"
+
 	"gorm.io/gorm/logger"
 )
 

@@ -9,6 +9,7 @@ import (
 	"github.com/bestruirui/octopus/internal/server/middleware"
 	"github.com/bestruirui/octopus/internal/server/router"
 	"github.com/bestruirui/octopus/internal/utils/log"
+	"github.com/bestruirui/octopus/static"
 	"github.com/gin-gonic/gin"
 )
 
@@ -23,9 +24,11 @@ func Start() error {
 
 	r := gin.New()
 
-	r.Use(middleware.Cors())
-	r.Use(middleware.Logger())
-	r.Use(middleware.StaticLocal("/", "static"))
+	if conf.IsDebug() {
+		r.Use(middleware.Cors())
+		r.Use(middleware.Logger())
+	}
+	r.Use(middleware.StaticEmbed("/", static.StaticFS))
 
 	router.RegisterAll(r)
 
