@@ -42,7 +42,7 @@ docker compose up -d
 
 ### 📦 Download from Release
 
-Download the binary for your platform from [Releases](https://github.com/bestruirui/octopus/releases), then run:
+Download the binary for your platform from [Releases](https://github.com/ffflyZzz/octopus/releases), then run:
 
 ```bash
 ./octopus start
@@ -57,7 +57,7 @@ Download the binary for your platform from [Releases](https://github.com/bestrui
 
 ```bash
 # Clone the repository
-git clone https://github.com/bestruirui/octopus.git
+git clone https://github.com/ffflyZzz/octopus.git
 cd octopus
 
 # 1. Build frontend
