@@ -102,6 +102,38 @@ go run . start
 | `OCTOPUS_DATABASE_PATH` | 数据库路径 | `data/data.db` |
 | `OCTOPUS_LOGGING_LEVEL` | 日志级别 | `info` |
 
+### 🔌 Amp CLI 集成
+
+Octopus 支持 [Amp CLI](https://ampcode.com) 代理集成，允许你使用 Octopus 作为 Amp CLI 请求的代理。
+
+**配置方式**（在 `data/config.json` 中）：
+
+```json
+{
+  "ampcode": {
+    "enabled": true,
+    "upstream_url": "https://ampcode.com",
+    "upstream_api_key": "your-api-key",
+    "restrict_management_to_localhost": false
+  }
+}
+```
+
+| 字段 | 说明 | 默认值 |
+|------|------|--------|
+| `enabled` | 启用 Amp CLI 代理 | `false` |
+| `upstream_url` | Amp 上游地址 | `https://ampcode.com` |
+| `upstream_api_key` | Amp API 密钥（可选） | `""` |
+| `restrict_management_to_localhost` | 限制管理 API 仅本地访问 | `false` |
+
+**API Key 优先级：**
+
+API 密钥按以下顺序解析：
+1. **配置文件**：config.json 中的 `ampcode.upstream_api_key`
+2. **环境变量**：`AMP_API_KEY`
+3. **Amp 密钥文件**：`~/.local/share/amp/secrets.json`
+
+> 💡 **提示**：如果你本地已安装 Amp CLI，Octopus 可以自动使用其存储的凭证。
 
 ## 📸 界面预览
 

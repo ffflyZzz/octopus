@@ -102,6 +102,38 @@ Customize configuration via environment variables:
 | `OCTOPUS_DATABASE_PATH` | Database path | `data/data.db` |
 | `OCTOPUS_LOGGING_LEVEL` | Log level | `info` |
 
+### 🔌 Amp CLI Integration
+
+Octopus supports [Amp CLI](https://ampcode.com) proxy integration, allowing you to use Octopus as a proxy for Amp CLI requests.
+
+**Configuration** (in `data/config.json`):
+
+```json
+{
+  "ampcode": {
+    "enabled": true,
+    "upstream_url": "https://ampcode.com",
+    "upstream_api_key": "your-api-key"
+  }
+}
+```
+
+| Field | Description | Default |
+|-------|-------------|---------|
+| `enabled` | Enable Amp CLI proxy | `false` |
+| `upstream_url` | Amp upstream URL | `https://ampcode.com` |
+| `upstream_api_key` | Amp API key (optional) | `""` |
+| `restrict_management_to_localhost` | Restrict management API to localhost | `false` |
+
+**API Key Priority:**
+
+The API key is resolved in the following order:
+1. **Config file**: `ampcode.upstream_api_key` in config.json
+2. **Environment variable**: `AMP_API_KEY`
+3. **Amp secrets file**: `~/.local/share/amp/secrets.json`
+
+> 💡 **Tip**: If you have Amp CLI installed locally, Octopus can automatically use its stored credentials.
+
 
 ## 📸 Screenshots
 
