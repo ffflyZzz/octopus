@@ -236,6 +236,7 @@ Since the program handles numerous statistics, writing to the database on every 
 
 ## 🤝 Acknowledgments
 
+- 🐙 [bestruirui/octopus](https://github.com/bestruirui/octopus) - This project is forked from the original Octopus project
 - 🙏 [looplj/axonhub](https://github.com/looplj/axonhub) - The LLM API adaptation module in this project is directly derived from this repository
 - 📊 [sst/models.dev](https://github.com/sst/models.dev) - AI model database providing model pricing data
 
