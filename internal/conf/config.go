@@ -23,10 +23,18 @@ type Database struct {
 	Path string `mapstructure:"path"`
 }
 
+type AmpCode struct {
+	Enabled                       bool   `mapstructure:"enabled"`
+	UpstreamURL                   string `mapstructure:"upstream_url"`
+	UpstreamAPIKey                string `mapstructure:"upstream_api_key"`
+	RestrictManagementToLocalhost bool   `mapstructure:"restrict_management_to_localhost"`
+}
+
 type Config struct {
 	Server   Server   `mapstructure:"server"`
 	Log      Log      `mapstructure:"log"`
 	Database Database `mapstructure:"database"`
+	AmpCode  AmpCode  `mapstructure:"ampcode"`
 }
 
 var AppConfig Config
@@ -74,4 +82,8 @@ func setDefaults() {
 	viper.SetDefault("database.type", "sqlite")
 	viper.SetDefault("database.path", "data/data.db")
 	viper.SetDefault("log.level", "info")
+	// AmpCode defaults
+	viper.SetDefault("ampcode.enabled", false)
+	viper.SetDefault("ampcode.upstream_url", "https://ampcode.com")
+	viper.SetDefault("ampcode.restrict_management_to_localhost", false)
 }

@@ -112,9 +112,15 @@ func (m *RelayMetrics) saveStats(success bool, duration time.Duration) {
 	op.StatsHourlyUpdate(m.Stats)
 	op.StatsDailyUpdate(context.Background(), m.Stats)
 
-	log.Infof("channel: %d, model: %s, success: %t, wait time: %d, input token: %d, output token: %d, input cost: %f, output cost: %f total cost: %f",
+	// 获取缓存命中的 token 数量
+	var cachedTokens int64
+	if m.InternalResponse != nil && m.InternalResponse.Usage != nil && m.InternalResponse.Usage.PromptTokensDetails != nil {
+		cachedTokens = m.InternalResponse.Usage.PromptTokensDetails.CachedTokens
+	}
+
+	log.Infof("channel: %d, model: %s, success: %t, wait time: %d, input token: %d, cached token: %d, output token: %d, input cost: %f, output cost: %f total cost: %f",
 		m.ChannelID, m.ActualModel, success, m.Stats.WaitTime,
-		m.Stats.InputToken, m.Stats.OutputToken,
+		m.Stats.InputToken, cachedTokens, m.Stats.OutputToken,
 		m.Stats.InputCost, m.Stats.OutputCost, m.Stats.InputCost+m.Stats.OutputCost)
 }
 
