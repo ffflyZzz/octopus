@@ -7,10 +7,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/bestruirui/octopus/internal/db"
-	"github.com/bestruirui/octopus/internal/model"
-	"github.com/bestruirui/octopus/internal/utils/log"
-	"github.com/bestruirui/octopus/internal/utils/snowflake"
+	"octopus/internal/db"
+	"octopus/internal/model"
+	"octopus/internal/utils/log"
+	"octopus/internal/utils/snowflake"
 )
 
 const relayLogMaxSize = 20

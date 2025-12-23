@@ -4,10 +4,10 @@ import (
 	"context"
 	"time"
 
-	"github.com/bestruirui/octopus/internal/model"
-	"github.com/bestruirui/octopus/internal/op"
-	"github.com/bestruirui/octopus/internal/price"
-	"github.com/bestruirui/octopus/internal/utils/log"
+	"octopus/internal/model"
+	"octopus/internal/op"
+	"octopus/internal/price"
+	"octopus/internal/utils/log"
 )
 
 const (

@@ -8,8 +8,8 @@ import (
 	"runtime"
 	"syscall"
 
-	"github.com/bestruirui/octopus/internal/utils/log"
-	"github.com/bestruirui/octopus/internal/utils/shutdown"
+	"octopus/internal/utils/log"
+	"octopus/internal/utils/shutdown"
 )
 
 func UpdateCore() error {

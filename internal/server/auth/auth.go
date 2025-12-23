@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bestruirui/octopus/internal/conf"
-	"github.com/bestruirui/octopus/internal/op"
+	"octopus/internal/conf"
+	"octopus/internal/op"
 	"github.com/golang-jwt/jwt/v5"
 )
 

@@ -5,11 +5,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bestruirui/octopus/internal/client"
-	"github.com/bestruirui/octopus/internal/model"
-	"github.com/bestruirui/octopus/internal/op"
-	"github.com/bestruirui/octopus/internal/server/worker"
-	"github.com/bestruirui/octopus/internal/utils/log"
+	"octopus/internal/client"
+	"octopus/internal/model"
+	"octopus/internal/op"
+	"octopus/internal/server/worker"
+	"octopus/internal/utils/log"
 )
 
 var lastSyncTime = time.Now()

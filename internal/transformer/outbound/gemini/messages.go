@@ -10,8 +10,8 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/bestruirui/octopus/internal/transformer/model"
-	"github.com/bestruirui/octopus/internal/utils/xurl"
+	"octopus/internal/transformer/model"
+	"octopus/internal/utils/xurl"
 	"github.com/samber/lo"
 )
 

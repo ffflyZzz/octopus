@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/bestruirui/octopus/internal/db"
-	"github.com/bestruirui/octopus/internal/model"
-	"github.com/bestruirui/octopus/internal/utils/cache"
-	"github.com/bestruirui/octopus/internal/utils/log"
+	"octopus/internal/db"
+	"octopus/internal/model"
+	"octopus/internal/utils/cache"
+	"octopus/internal/utils/log"
 )
 
 var channelCache = cache.New[int, model.Channel](16)

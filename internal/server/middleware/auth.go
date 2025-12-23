@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/bestruirui/octopus/internal/server/auth"
-	"github.com/bestruirui/octopus/internal/server/resp"
+	"octopus/internal/server/auth"
+	"octopus/internal/server/resp"
 	"github.com/gin-gonic/gin"
 )
 

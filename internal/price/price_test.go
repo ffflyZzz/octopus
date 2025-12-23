@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bestruirui/octopus/internal/model"
+	"octopus/internal/model"
 )
 
 func TestPrice(t *testing.T) {

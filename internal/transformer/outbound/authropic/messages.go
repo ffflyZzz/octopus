@@ -12,9 +12,9 @@ import (
 
 	"github.com/samber/lo"
 
-	anthropicModel "github.com/bestruirui/octopus/internal/transformer/inbound/anthropic"
-	"github.com/bestruirui/octopus/internal/transformer/model"
-	"github.com/bestruirui/octopus/internal/utils/xurl"
+	anthropicModel "octopus/internal/transformer/inbound/anthropic"
+	"octopus/internal/transformer/model"
+	"octopus/internal/utils/xurl"
 )
 
 type MessageOutbound struct {

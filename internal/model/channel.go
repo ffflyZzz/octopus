@@ -1,6 +1,6 @@
 package model
 
-import "github.com/bestruirui/octopus/internal/transformer/outbound"
+import "octopus/internal/transformer/outbound"
 
 type AutoGroupType int
 

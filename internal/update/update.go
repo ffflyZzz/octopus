@@ -12,12 +12,12 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/bestruirui/octopus/internal/client"
-	"github.com/bestruirui/octopus/internal/utils/log"
+	"octopus/internal/client"
+	"octopus/internal/utils/log"
 )
 
 const (
-	updateUrl    = "https://github.com/bestruirui/octopus/releases/latest/download"
+	updateUrl    = "https://octopus/releases/latest/download"
 	updateApiUrl = "https://api.github.com/repos/bestruirui/octopus/releases/latest"
 )
 

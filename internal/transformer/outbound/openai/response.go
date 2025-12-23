@@ -12,8 +12,8 @@ import (
 
 	"github.com/samber/lo"
 
-	"github.com/bestruirui/octopus/internal/transformer/model"
-	"github.com/bestruirui/octopus/internal/utils/log"
+	"octopus/internal/transformer/model"
+	"octopus/internal/utils/log"
 )
 
 // ResponseOutbound implements the Outbound interface for OpenAI Responses API.

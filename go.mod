@@ -1,4 +1,4 @@
-module github.com/bestruirui/octopus
+module octopus
 
 go 1.24.4
 

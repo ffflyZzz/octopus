@@ -3,7 +3,7 @@ package db
 import (
 	"strings"
 
-	"github.com/bestruirui/octopus/internal/model"
+	"octopus/internal/model"
 	"github.com/glebarez/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"

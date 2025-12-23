@@ -4,8 +4,8 @@ import (
 	"context"
 	"strings"
 
-	"github.com/bestruirui/octopus/internal/model"
-	"github.com/bestruirui/octopus/internal/op"
+	"octopus/internal/model"
+	"octopus/internal/op"
 )
 
 func AutoAddGroupItem(id int, ctx context.Context) error {

@@ -7,8 +7,8 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/bestruirui/octopus/internal/model"
-	"github.com/bestruirui/octopus/internal/transformer/outbound"
+	"octopus/internal/model"
+	"octopus/internal/transformer/outbound"
 )
 
 func FetchLLMName(ctx context.Context, request model.Channel) ([]string, error) {
