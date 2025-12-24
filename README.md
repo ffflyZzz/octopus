@@ -20,6 +20,7 @@
 - 🔃 **Model Sync** - Automatic synchronization of available model lists with channels
 - 📊 **Analytics** - Comprehensive request statistics, token consumption, and cost tracking
 - 🎨 **Elegant UI** - Clean and beautiful web management panel
+- 🗄️ **Multi-Database Support** - Support for SQLite, MySQL, PostgreSQL
 
 
 ## 🚀 Quick Start
@@ -91,16 +92,83 @@ After first launch, visit http://localhost:8080 and log in to the management pan
 
 > ⚠️ **Security Notice**: Please change the default password immediately after first login.
 
+### 📝 Configuration File
+
+The configuration file is located at `data/config.json` by default and is automatically generated on first startup.
+
+**Complete Configuration Example:**
+
+```json
+{
+  "server": {
+    "host": "0.0.0.0",
+    "port": 8080
+  },
+  "database": {
+    "type": "sqlite",
+    "path": "data/data.db"
+  },
+  "log": {
+    "level": "info"
+  }
+}
+```
+
+**Configuration Options:**
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `server.host` | Listen address | `0.0.0.0` |
+| `server.port` | Server port | `8080` |
+| `database.type` | Database type | `sqlite` |
+| `database.path` | Database connection string | `data/data.db` |
+| `log.level` | Log level | `info` |
+
+**Database Configuration:**
+
+Three database types are supported:
+
+| Type | `database.type` | `database.path` Format |
+|------|-----------------|-----------------------|
+| SQLite | `sqlite` | `data/data.db` |
+| MySQL | `mysql` | `user:password@tcp(host:port)/dbname` |
+| PostgreSQL | `postgres` | `postgresql://user:password@host:port/dbname?sslmode=disable` |
+
+**MySQL Configuration Example:**
+
+```json
+{
+  "database": {
+    "type": "mysql",
+    "path": "root:password@tcp(127.0.0.1:3306)/octopus"
+  }
+}
+```
+
+**PostgreSQL Configuration Example:**
+
+```json
+{
+  "database": {
+    "type": "postgres",
+    "path": "postgresql://user:password@localhost:5432/octopus?sslmode=disable"
+  }
+}
+```
+
+> 💡 **Tip**: MySQL and PostgreSQL require manual database creation. The application will automatically create the table structure.
+
 ### 🌐 Environment Variables
 
-Customize configuration via environment variables:
+All configuration options can be overridden via environment variables using the format `OCTOPUS_` + configuration path (joined with `_`):
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `OCTOPUS_SERVER_PORT` | Server port | `8080` |
-| `OCTOPUS_SERVER_HOST` | Listen address | `0.0.0.0` |
-| `OCTOPUS_DATABASE_PATH` | Database path | `data/data.db` |
-| `OCTOPUS_LOGGING_LEVEL` | Log level | `info` |
+| Environment Variable | Configuration Option |
+|---------------------|---------------------|
+| `OCTOPUS_SERVER_PORT` | `server.port` |
+| `OCTOPUS_SERVER_HOST` | `server.host` |
+| `OCTOPUS_DATABASE_TYPE` | `database.type` |
+| `OCTOPUS_DATABASE_PATH` | `database.path` |
+| `OCTOPUS_LOG_LEVEL` | `log.level` |
 
 ### 🔌 Amp CLI Integration
 
@@ -203,6 +271,7 @@ The program automatically appends API paths based on channel type. You only need
 | OpenAI Chat | `/chat/completions` | `https://api.openai.com/v1` | `https://api.openai.com/v1/chat/completions` |
 | OpenAI Responses | `/responses` | `https://api.openai.com/v1` | `https://api.openai.com/v1/responses` |
 | Anthropic | `/messages` | `https://api.anthropic.com/v1` | `https://api.anthropic.com/v1/messages` |
+| Gemini | `/models/:model:generateContent` | `https://generativelanguage.googleapis.com/v1beta` | `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent` |
 
 > 💡 **Tip**: No need to include specific API endpoint paths in the Base URL - the program handles this automatically.
 

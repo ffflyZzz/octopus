@@ -2,6 +2,8 @@ package op
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"sync"
 	"time"
 
@@ -9,6 +11,8 @@ import (
 	"octopus/internal/model"
 	"octopus/internal/utils/cache"
 	"octopus/internal/utils/log"
+
+	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
 
@@ -319,8 +323,8 @@ func statsRefreshCache(ctx context.Context) error {
 
 	var loadedDaily model.StatsDaily
 	result := dbConn.Last(&loadedDaily)
-	if result.Error != nil {
-		return result.Error
+	if result.Error != nil && !errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return fmt.Errorf("failed to get daily stats: %v", result.Error)
 	}
 	if result.RowsAffected == 0 || loadedDaily.Date != today {
 		loadedDaily = model.StatsDaily{Date: today}
@@ -328,8 +332,8 @@ func statsRefreshCache(ctx context.Context) error {
 
 	var loadedTotal model.StatsTotal
 	result = dbConn.First(&loadedTotal)
-	if result.Error != nil {
-		return result.Error
+	if result.Error != nil && !errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return fmt.Errorf("failed to get total stats: %v", result.Error)
 	}
 	if result.RowsAffected == 0 {
 		loadedTotal = model.StatsTotal{ID: 1}
@@ -340,13 +344,13 @@ func statsRefreshCache(ctx context.Context) error {
 	var loadedChannels []model.StatsChannel
 	result = dbConn.Find(&loadedChannels)
 	if result.Error != nil {
-		return result.Error
+		return fmt.Errorf("failed to get channels: %v", result.Error)
 	}
 
 	var loadedHourly []model.StatsHourly
 	result = dbConn.Find(&loadedHourly)
 	if result.Error != nil {
-		return result.Error
+		return fmt.Errorf("failed to get hourly stats: %v", result.Error)
 	}
 
 	statsDailyCacheLock.Lock()
