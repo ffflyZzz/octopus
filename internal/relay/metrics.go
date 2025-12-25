@@ -16,6 +16,7 @@ import (
 type RelayMetrics struct {
 	// 基础信息
 	ChannelID      int
+	APIKeyID       int
 	ChannelName    string // 渠道名称
 	RequestModel   string // 请求的模型名称
 	ActualModel    string // 实际使用的模型名称
@@ -36,6 +37,10 @@ func NewRelayMetrics(requestModel string) *RelayMetrics {
 		RequestModel: requestModel,
 		StartTime:    time.Now(),
 	}
+}
+
+func (m *RelayMetrics) SetAPIKeyID(apiKeyID int) {
+	m.APIKeyID = apiKeyID
 }
 
 // SetChannel 设置通道信息
@@ -104,13 +109,11 @@ func (m *RelayMetrics) saveStats(success bool, duration time.Duration) {
 	}
 	m.Stats.WaitTime = duration.Milliseconds()
 
-	op.StatsChannelUpdate(model.StatsChannel{
-		ChannelID:    m.ChannelID,
-		StatsMetrics: m.Stats,
-	})
+	op.StatsChannelUpdate(m.ChannelID, m.Stats)
 	op.StatsTotalUpdate(m.Stats)
 	op.StatsHourlyUpdate(m.Stats)
 	op.StatsDailyUpdate(context.Background(), m.Stats)
+	op.StatsAPIKeyUpdate(m.APIKeyID, m.Stats)
 
 	// 获取缓存命中的 token 数量
 	var cachedTokens int64
