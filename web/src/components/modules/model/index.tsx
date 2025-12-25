@@ -111,7 +111,7 @@ export function Model() {
                     </TabsList>
                 </div>
 
-                <TabsContents>
+                <TabsContents className="mt-3">
                     <TabsContent value="all">
                         <AnimatePresence mode="popLayout" initial={false} custom={direction}>
                             <motion.div

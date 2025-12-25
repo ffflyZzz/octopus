@@ -57,9 +57,7 @@ export function ModelDeleteOverlay({
     );
 }
 
-type ModelEditOverlayProps = {
-    layoutId: string;
-    modelName: string;
+type ModelEditDialogProps = {
     brandColor: string;
     editValues: EditValues;
     isPending: boolean;
@@ -68,27 +66,17 @@ type ModelEditOverlayProps = {
     onSave: () => void;
 };
 
-export function ModelEditOverlay({
-    layoutId,
-    modelName,
+export function ModelEditDialog({
     brandColor,
     editValues,
     isPending,
     onChange,
     onCancel,
     onSave,
-}: ModelEditOverlayProps) {
+}: ModelEditDialogProps) {
     const t = useTranslations('model.overlay');
     return (
-        <motion.div
-            layoutId={layoutId}
-            className="absolute inset-0 z-20 flex flex-col bg-card p-5 rounded-3xl border border-border custom-shadow overflow-y-auto"
-            transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-        >
-            <h3 className="text-sm font-semibold text-card-foreground line-clamp-1 mb-3">
-                {modelName}
-            </h3>
-
+        <div className="flex flex-col gap-3">
             <div className="grid grid-cols-2 gap-2">
                 <label className="grid gap-1 text-xs text-muted-foreground">
                     {t('input')}
@@ -132,7 +120,7 @@ export function ModelEditOverlay({
                 </label>
             </div>
 
-            <div className="flex gap-2 pt-2 mt-3">
+            <div className="flex gap-2 pt-2">
                 <button
                     type="button"
                     onClick={onCancel}
@@ -153,6 +141,6 @@ export function ModelEditOverlay({
                     {t('save')}
                 </button>
             </div>
-        </motion.div>
+        </div>
     );
 }
