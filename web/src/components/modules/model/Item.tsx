@@ -89,8 +89,9 @@ export const ModelItem = memo(function ModelItem({ model }: ModelItemProps) {
     return (
         <article
             className={cn(
-                'group relative h-28 rounded-3xl border border-border bg-card custom-shadow transition-all duration-300 flex items-center gap-3 p-4',
-                (isEditing || confirmDelete) && 'z-50'
+                'group relative min-h-28 rounded-3xl border border-border bg-card custom-shadow transition-all duration-300 flex items-center gap-3 p-4',
+                isEditing && 'h-[240px] items-start',
+                confirmDelete && 'z-50'
             )}
         >
             <ModelAvatar size={52} />
