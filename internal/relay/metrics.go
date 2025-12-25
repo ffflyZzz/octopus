@@ -73,11 +73,18 @@ func (m *RelayMetrics) SetInternalResponse(resp *transformerModel.InternalLLMRes
 	m.Stats.InputToken = usage.PromptTokens
 	m.Stats.OutputToken = usage.CompletionTokens
 
-	// 计算费用
-	modelPrice := price.GetLLMPrice(m.ActualModel)
-	if modelPrice == nil {
-		return
+	// 计算费用 - 使用渠道特定的价格
+	modelPrice, err := op.LLMGet(m.ActualModel, m.ChannelID)
+	if err != nil {
+		// 如果没有找到渠道特定价格，尝试从价格缓存获取默认价格
+		defaultPrice := price.GetLLMPrice(m.ActualModel)
+		if defaultPrice == nil {
+			log.Warnf("No price found for model %s on channel %d", m.ActualModel, m.ChannelID)
+			return
+		}
+		modelPrice = *defaultPrice
 	}
+
 	if usage.PromptTokensDetails != nil {
 		m.Stats.InputCost = (float64(usage.PromptTokensDetails.CachedTokens)*modelPrice.CacheRead +
 			float64(usage.PromptTokens-usage.PromptTokensDetails.CachedTokens)*modelPrice.Input) * 1e-6

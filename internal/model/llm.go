@@ -8,7 +8,8 @@ type LLMPrice struct {
 }
 
 type LLMInfo struct {
-	Name string `json:"name" gorm:"primaryKey;not null"`
+	Name      string `json:"name" gorm:"primaryKey;not null"`
+	ChannelID int    `json:"channel_id" gorm:"primaryKey;not null"`
 	LLMPrice
 }
 

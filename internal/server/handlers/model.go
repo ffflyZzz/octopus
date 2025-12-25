@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"strconv"
 	"strings"
 
 	"octopus/internal/model"
@@ -10,6 +11,7 @@ import (
 	"octopus/internal/server/middleware"
 	"octopus/internal/server/resp"
 	"octopus/internal/server/router"
+
 	"github.com/gin-gonic/gin"
 	"github.com/samber/lo"
 )
@@ -110,7 +112,24 @@ func getModelList(c *gin.Context) {
 }
 
 func listLLM(c *gin.Context) {
-	models, err := op.LLMList(c.Request.Context())
+	channelIDStr := c.Query("channel_id")
+
+	var models []model.LLMInfo
+	var err error
+
+	if channelIDStr != "" {
+		// 按渠道过滤
+		channelID, parseErr := strconv.Atoi(channelIDStr)
+		if parseErr != nil {
+			resp.Error(c, http.StatusBadRequest, "invalid channel_id")
+			return
+		}
+		models, err = op.LLMListByChannel(c.Request.Context(), channelID)
+	} else {
+		// 获取所有模型
+		models, err = op.LLMList(c.Request.Context())
+	}
+
 	if err != nil {
 		resp.Error(c, http.StatusInternalServerError, err.Error())
 		return
@@ -155,13 +174,14 @@ func updateLLM(c *gin.Context) {
 
 func deleteLLM(c *gin.Context) {
 	var req struct {
-		Name string `json:"name" binding:"required"`
+		Name      string `json:"name" binding:"required"`
+		ChannelID int    `json:"channel_id" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		resp.Error(c, http.StatusBadRequest, err.Error())
 		return
 	}
-	if err := op.LLMDelete(req.Name, c.Request.Context()); err != nil {
+	if err := op.LLMDelete(req.Name, req.ChannelID, c.Request.Context()); err != nil {
 		resp.Error(c, http.StatusInternalServerError, err.Error())
 		return
 	}

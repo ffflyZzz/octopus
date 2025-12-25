@@ -11,10 +11,11 @@ import (
 )
 
 const (
-	TaskPriceUpdate  = "price_update"
-	TaskStatsSave    = "stats_save"
-	TaskRelayLogSave = "relay_log_save"
-	TaskSyncLLM      = "sync_llm"
+	TaskPriceUpdate    = "price_update"
+	TaskStatsSave      = "stats_save"
+	TaskRelayLogSave   = "relay_log_save"
+	TaskSyncLLM        = "sync_llm"
+	TaskLLMCacheRefresh = "llm_cache_refresh"
 )
 
 func Init() {
@@ -46,6 +47,13 @@ func Init() {
 	Register(TaskRelayLogSave, 10*time.Minute, false, func() {
 		if err := op.RelayLogSaveDBTask(context.Background()); err != nil {
 			log.Warnf("relay log save db task failed: %v", err)
+		}
+	})
+
+	// 注册 LLM 价格缓存刷新任务（每5分钟刷新一次，确保缓存与数据库同步）
+	Register(TaskLLMCacheRefresh, 5*time.Minute, false, func() {
+		if err := op.LLMRefreshCache(context.Background()); err != nil {
+			log.Warnf("llm cache refresh task failed: %v", err)
 		}
 	})
 

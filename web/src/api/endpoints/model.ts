@@ -17,6 +17,7 @@ export interface LLMPrice {
  */
 export interface LLMInfo extends LLMPrice {
     name: string;
+    channel_id: number;
 }
 
 /**
@@ -30,20 +31,22 @@ export interface LLMChannel {
 
 /**
  * 获取 LLM 模型列表 Hook
- * 
+ *
+ * @param channelId - 可选的渠道ID过滤
+ *
  * @example
- * const { data: models, isLoading, error } = useModelList();
- * 
- * if (isLoading) return <Loading />;
- * if (error) return <Error message={error.message} />;
- * 
- * models?.forEach(model => console.log(model.name, model.input));
+ * // 获取所有模型
+ * const { data: models } = useModelList();
+ *
+ * // 获取特定渠道的模型
+ * const { data: channelModels } = useModelList(1);
  */
-export function useModelList() {
+export function useModelList(channelId?: number) {
     return useQuery({
-        queryKey: ['models', 'list'],
+        queryKey: ['models', 'list', channelId],
         queryFn: async () => {
-            return apiClient.get<LLMInfo[]>('/api/v1/model/list');
+            const params = channelId !== undefined ? `?channel_id=${channelId}` : '';
+            return apiClient.get<LLMInfo[]>(`/api/v1/model/list${params}`);
         },
         refetchInterval: 30000,
         refetchOnMount: 'always',
@@ -135,22 +138,23 @@ export function useCreateModel() {
 
 /**
  * 删除 LLM 模型 Hook
- * 
+ *
  * @example
  * const deleteModel = useDeleteModel();
- * 
- * deleteModel.mutate('gpt-4'); // 删除名称为 'gpt-4' 的模型
+ *
+ * deleteModel.mutate({ name: 'gpt-4', channel_id: 1 });
  */
 export function useDeleteModel() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async (name: string) => {
-            return apiClient.post<null>('/api/v1/model/delete', { name });
+        mutationFn: async (data: { name: string; channel_id: number }) => {
+            return apiClient.post<null>('/api/v1/model/delete', data);
         },
         onSuccess: () => {
             logger.log('模型删除成功');
             queryClient.invalidateQueries({ queryKey: ['models', 'list'] });
+            queryClient.invalidateQueries({ queryKey: ['models', 'channel'] });
         },
         onError: (error) => {
             logger.error('模型删除失败:', error);

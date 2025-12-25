@@ -70,7 +70,7 @@ func AutoGroup(channelID int, channelName, channelModel, customModel string, aut
 	}
 }
 
-func CheckAndAddLLMPrice(channelModel, customModel string) {
+func CheckAndAddLLMPrice(channelID int, channelModel, customModel string) {
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 		defer cancel()
@@ -79,12 +79,30 @@ func CheckAndAddLLMPrice(channelModel, customModel string) {
 			if modelName == "" {
 				continue
 			}
-			modelPrice := price.GetLLMPrice(modelName)
-			if modelPrice == nil {
-				log.Infof("model %s price not found,create", modelName)
-				err := op.LLMCreate(model.LLMInfo{Name: modelName}, ctx)
+			// 检查该渠道是否已经有这个模型
+			_, err := op.LLMGet(modelName, channelID)
+			if err != nil {
+				// 模型不存在，从价格API获取默认价格
+				modelPrice := price.GetLLMPrice(modelName)
+				if modelPrice == nil {
+					// 如果价格API也没有，创建一个默认价格
+					log.Infof("model %s price not found in API, creating with default price", modelName)
+					modelPrice = &model.LLMPrice{
+						Input:      0,
+						Output:     0,
+						CacheRead:  0,
+						CacheWrite: 0,
+					}
+				}
+
+				log.Infof("creating model %s for channel %d", modelName, channelID)
+				err := op.LLMCreate(model.LLMInfo{
+					Name:      modelName,
+					ChannelID: channelID,
+					LLMPrice:  *modelPrice,
+				}, ctx)
 				if err != nil {
-					log.Errorf("create model: %s", modelName)
+					log.Errorf("failed to create model %s for channel %d: %v", modelName, channelID, err)
 				}
 			}
 		}

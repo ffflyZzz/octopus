@@ -21,6 +21,7 @@
 - 📊 **Analytics** - Comprehensive request statistics, token consumption, and cost tracking
 - 🎨 **Elegant UI** - Clean and beautiful web management panel
 - 🗄️ **Multi-Database Support** - Support for SQLite, MySQL, PostgreSQL
+- 🏷️ **Per-Channel Model Pricing** - Independent model pricing configuration for each channel, supporting same model names across different channels with unique pricing
 
 
 ## 🚀 Quick Start
@@ -301,22 +302,39 @@ Groups aggregate multiple channels into a unified external model name.
 
 ### 💰 Price Management
 
-Manage model pricing information in the system.
+Manage model pricing information in the system with **per-channel pricing support**.
+
+**Architecture:**
+
+The system uses a **one-to-many** relationship architecture:
+- **Channel Type** → **Channels** → **Models**
+- Each channel can have independent model pricing
+- Same model name can exist across different channels with different prices
 
 **Data Sources:**
 
 - The system periodically syncs model pricing data from [models.dev](https://github.com/sst/models.dev)
-- When creating a channel, if the channel contains models not in models.dev, the system automatically creates pricing information for those models on this page, so this page displays models that haven't had their prices fetched from upstream, allowing users to set prices manually
+- When creating a channel, if the channel contains models not in models.dev, the system automatically creates pricing information for those models, allowing users to set prices manually
 - Manual creation of models that exist in models.dev is also supported for custom pricing
 
 **Price Priority:**
 
 | Priority | Source | Description |
 |:--------:|--------|-------------|
-| 🥇 High | This Page | Prices set by user in price management page |
-| 🥈 Low | models.dev | Auto-synced default prices |
+| 🥇 High | Channel-Specific Price | Prices configured for specific channel-model combinations |
+| 🥈 Medium | Default Price | User-defined default prices in price management page |
+| 🥉 Low | models.dev | Auto-synced upstream default prices |
 
-> 💡 **Tip**: To override a model's default price, simply set a custom price for it in the price management page.
+**Key Features:**
+
+- 🎯 **Channel-Based Organization** - View and manage models organized by channel tabs
+- 💱 **Independent Pricing** - Set different prices for the same model across different channels
+- 🔄 **Automatic Cost Calculation** - System automatically uses channel-specific prices when calculating request costs
+- 📊 **Per-Channel Statistics** - Track token usage and costs separately for each channel
+
+> 💡 **Example**: You can have `claude-sonnet-4` at $3.00/$15.00 on Channel A and $2.50/$12.00 on Channel B, with accurate cost tracking for each.
+
+> 💡 **Tip**: To override a model's default price for a specific channel, navigate to that channel's tab in the price management page and edit the model's pricing.
 
 ---
 

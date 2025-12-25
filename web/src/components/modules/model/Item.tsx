@@ -52,6 +52,7 @@ export const ModelItem = memo(function ModelItem({ model }: ModelItemProps) {
     const handleSaveEdit = () => {
         updateModel.mutate({
             name: model.name,
+            channel_id: model.channel_id,
             input: parseFloat(editValues.input) || 0,
             output: parseFloat(editValues.output) || 0,
             cache_read: parseFloat(editValues.cache_read) || 0,
@@ -73,7 +74,7 @@ export const ModelItem = memo(function ModelItem({ model }: ModelItemProps) {
     };
     const handleCancelDelete = () => setConfirmDelete(false);
     const handleConfirmDelete = () => {
-        deleteModel.mutate(model.name, {
+        deleteModel.mutate({ name: model.name, channel_id: model.channel_id }, {
             onSuccess: () => {
                 setConfirmDelete(false);
                 toast.success(t('toast.deleted'));
