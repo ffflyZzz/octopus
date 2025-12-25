@@ -30,11 +30,11 @@ func LLMListByChannel(ctx context.Context, channelID int) ([]model.LLMInfo, erro
 	return models, nil
 }
 
-func LLMUpdate(model model.LLMInfo, ctx context.Context) error {
+func LLMUpdate(llmInfo model.LLMInfo, ctx context.Context) error {
 	// 首先检查记录是否存在
 	var existing model.LLMInfo
 	err := db.GetDB().WithContext(ctx).
-		Where("name = ? AND channel_id = ?", model.Name, model.ChannelID).
+		Where("name = ? AND channel_id = ?", llmInfo.Name, llmInfo.ChannelID).
 		First(&existing).Error
 
 	if err != nil {
@@ -46,23 +46,23 @@ func LLMUpdate(model model.LLMInfo, ctx context.Context) error {
 
 	// 使用 map 更新以支持零值字段
 	updates := map[string]interface{}{
-		"input":       model.Input,
-		"output":      model.Output,
-		"cache_read":  model.CacheRead,
-		"cache_write": model.CacheWrite,
+		"input":       llmInfo.Input,
+		"output":      llmInfo.Output,
+		"cache_read":  llmInfo.CacheRead,
+		"cache_write": llmInfo.CacheWrite,
 	}
 
 	result := db.GetDB().WithContext(ctx).
 		Model(&model.LLMInfo{}).
-		Where("name = ? AND channel_id = ?", model.Name, model.ChannelID).
+		Where("name = ? AND channel_id = ?", llmInfo.Name, llmInfo.ChannelID).
 		Updates(updates)
 
 	if result.Error != nil {
 		return fmt.Errorf("update failed: %w", result.Error)
 	}
 
-	cacheKey := fmt.Sprintf("%s:%d", model.Name, model.ChannelID)
-	llmModelCache.Set(cacheKey, model.LLMPrice)
+	cacheKey := fmt.Sprintf("%s:%d", llmInfo.Name, llmInfo.ChannelID)
+	llmModelCache.Set(cacheKey, llmInfo.LLMPrice)
 	return nil
 }
 
