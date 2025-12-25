@@ -2,11 +2,14 @@ package op
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"octopus/internal/db"
 	"octopus/internal/model"
 	"octopus/internal/utils/cache"
+
+	"gorm.io/gorm"
 )
 
 var llmModelCache = cache.New[string, model.LLMPrice](16)
@@ -28,9 +31,36 @@ func LLMListByChannel(ctx context.Context, channelID int) ([]model.LLMInfo, erro
 }
 
 func LLMUpdate(model model.LLMInfo, ctx context.Context) error {
-	if err := db.GetDB().WithContext(ctx).Save(&model).Error; err != nil {
-		return err
+	// 首先检查记录是否存在
+	var existing model.LLMInfo
+	err := db.GetDB().WithContext(ctx).
+		Where("name = ? AND channel_id = ?", model.Name, model.ChannelID).
+		First(&existing).Error
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return fmt.Errorf("model not found")
+		}
+		return fmt.Errorf("database error: %w", err)
 	}
+
+	// 使用 map 更新以支持零值字段
+	updates := map[string]interface{}{
+		"input":       model.Input,
+		"output":      model.Output,
+		"cache_read":  model.CacheRead,
+		"cache_write": model.CacheWrite,
+	}
+
+	result := db.GetDB().WithContext(ctx).
+		Model(&model.LLMInfo{}).
+		Where("name = ? AND channel_id = ?", model.Name, model.ChannelID).
+		Updates(updates)
+
+	if result.Error != nil {
+		return fmt.Errorf("update failed: %w", result.Error)
+	}
+
 	cacheKey := fmt.Sprintf("%s:%d", model.Name, model.ChannelID)
 	llmModelCache.Set(cacheKey, model.LLMPrice)
 	return nil
@@ -65,8 +95,13 @@ func LLMGet(name string, channelID int) (model.LLMPrice, error) {
 
 	// 从数据库查询
 	var m model.LLMInfo
-	if err := db.GetDB().Where("name = ? AND channel_id = ?", name, channelID).First(&m).Error; err != nil {
-		return model.LLMPrice{}, fmt.Errorf("model not found")
+	err := db.GetDB().Where("name = ? AND channel_id = ?", name, channelID).First(&m).Error
+	if err != nil {
+		// 使用 errors.Is 区分数据库错误和记录不存在
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return model.LLMPrice{}, fmt.Errorf("model not found")
+		}
+		return model.LLMPrice{}, fmt.Errorf("database error: %w", err)
 	}
 	llmModelCache.Set(cacheKey, m.LLMPrice)
 	return m.LLMPrice, nil

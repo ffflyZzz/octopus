@@ -152,6 +152,10 @@ func createLLM(c *gin.Context) {
 		resp.Error(c, http.StatusBadRequest, err.Error())
 		return
 	}
+	if model.ChannelID <= 0 {
+		resp.Error(c, http.StatusBadRequest, "channel_id must be greater than 0")
+		return
+	}
 	if err := op.LLMCreate(model, c.Request.Context()); err != nil {
 		resp.Error(c, http.StatusInternalServerError, err.Error())
 		return
@@ -165,6 +169,10 @@ func updateLLM(c *gin.Context) {
 		resp.Error(c, http.StatusBadRequest, err.Error())
 		return
 	}
+	if model.ChannelID <= 0 {
+		resp.Error(c, http.StatusBadRequest, "channel_id must be greater than 0")
+		return
+	}
 	if err := op.LLMUpdate(model, c.Request.Context()); err != nil {
 		resp.Error(c, http.StatusInternalServerError, err.Error())
 		return
@@ -175,12 +183,19 @@ func updateLLM(c *gin.Context) {
 func deleteLLM(c *gin.Context) {
 	var req struct {
 		Name      string `json:"name" binding:"required"`
-		ChannelID int    `json:"channel_id" binding:"required"`
+		ChannelID int    `json:"channel_id"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		resp.Error(c, http.StatusBadRequest, err.Error())
 		return
 	}
+
+	// 兼容性处理：如果没有提供 channel_id，返回明确的错误信息
+	if req.ChannelID == 0 {
+		resp.Error(c, http.StatusBadRequest, "channel_id is required. This is a breaking change from previous versions. Please update your client to include channel_id in delete requests.")
+		return
+	}
+
 	if err := op.LLMDelete(req.Name, req.ChannelID, c.Request.Context()); err != nil {
 		resp.Error(c, http.StatusInternalServerError, err.Error())
 		return

@@ -27,6 +27,8 @@ func AutoGroup(channelID int, channelName, channelModel, customModel string, aut
 
 	modelNames := strings.Split(channelModel+","+customModel, ",")
 	for _, modelName := range modelNames {
+		// 去除首尾空格
+		modelName = strings.TrimSpace(modelName)
 		if modelName == "" {
 			continue
 		}
@@ -76,6 +78,8 @@ func CheckAndAddLLMPrice(channelID int, channelModel, customModel string) {
 		defer cancel()
 		modelNames := strings.Split(channelModel+","+customModel, ",")
 		for _, modelName := range modelNames {
+			// 去除首尾空格，避免创建重复模型
+			modelName = strings.TrimSpace(modelName)
 			if modelName == "" {
 				continue
 			}

@@ -79,6 +79,12 @@ func ChannelDel(id int, ctx context.Context) error {
 		return fmt.Errorf("failed to delete channel stats: %w", err)
 	}
 
+	// 删除该渠道的所有 llm_infos 记录
+	if err := tx.Where("channel_id = ?", id).Delete(&model.LLMInfo{}).Error; err != nil {
+		tx.Rollback()
+		return fmt.Errorf("failed to delete llm_infos: %w", err)
+	}
+
 	// 删除渠道
 	if err := tx.Delete(&model.Channel{}, id).Error; err != nil {
 		tx.Rollback()
@@ -92,6 +98,11 @@ func ChannelDel(id int, ctx context.Context) error {
 	// 删除缓存
 	channelCache.Del(id)
 	StatsChannelDel(id)
+
+	// 刷新 LLM 缓存以清除该渠道的价格记录
+	if err := LLMRefreshCache(ctx); err != nil {
+		log.Errorf("failed to refresh LLM cache after channel deletion: %v", err)
+	}
 
 	// 刷新受影响的分组缓存
 	for _, groupID := range affectedGroupIDs {

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { useModelList, useModelChannelList } from '@/api/endpoints/model';
+import { useModelList } from '@/api/endpoints/model';
 import { useChannelList } from '@/api/endpoints/channel';
 import { ModelItem } from './Item';
 import { usePaginationStore, useSearchStore } from '@/components/modules/toolbar';
@@ -13,7 +13,6 @@ import { Tabs, TabsList, TabsTrigger, TabsContents, TabsContent } from '@/compon
 export function Model() {
     const [activeChannelId, setActiveChannelId] = useState<number | undefined>(undefined);
     const { data: allModels } = useModelList();
-    const { data: modelChannelList } = useModelChannelList();
     const { data: channelsData } = useChannelList();
 
     const pageKey = 'model' as const;
