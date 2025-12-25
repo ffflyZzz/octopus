@@ -76,6 +76,18 @@ func LLMDelete(modelName string, channelID int, ctx context.Context) error {
 	return nil
 }
 
+// LLMBatchDelete 批量删除模型（上游新增功能）
+func LLMBatchDelete(modelNames []string, ctx context.Context) error {
+	if len(modelNames) == 0 {
+		return nil
+	}
+	if err := db.GetDB().WithContext(ctx).Where("name IN ?", modelNames).Delete(&model.LLMInfo{}).Error; err != nil {
+		return err
+	}
+	llmModelCache.Del(modelNames...)
+	return nil
+}
+
 func LLMCreate(m model.LLMInfo, ctx context.Context) error {
 	if err := db.GetDB().WithContext(ctx).Create(&m).Error; err != nil {
 		return err
