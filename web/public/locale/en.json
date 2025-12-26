@@ -162,6 +162,16 @@
                 "outputCost": "Output Cost",
                 "requestSuccess": "Request Success",
                 "requestFailed": "Request Failed"
+            },
+            "toast": {
+                "createSuccess": "API key created",
+                "createError": "Failed to create API key",
+                "updateSuccess": "API key updated",
+                "updateError": "Failed to update API key",
+                "deleteSuccess": "API key deleted",
+                "deleteError": "Failed to delete API key",
+                "copySuccess": "API key copied",
+                "copyError": "Failed to copy API key"
             }
         },
         "llmPrice": {
@@ -272,6 +282,9 @@
         },
         "detail": {
             "actions": {
+                "edit": "Edit",
+                "cancel": "Cancel",
+                "save": "Save",
                 "copyName": "Copy Name",
                 "delete": "Delete",
                 "confirmDelete": "Confirm Delete"
@@ -279,9 +292,13 @@
         },
         "form": {
             "name": "Group Name",
-            "items": "Model Names",
+            "matchRegex": "Match Regex",
+            "matchRegexPlaceholder": "Leave empty to use default fuzzy match by group name",
+            "matchRegexInvalid": "Invalid regex",
+            "items": "Selected Models",
             "addItem": "Add Model",
             "autoAdd": "Auto Add",
+            "clear": "Clear",
             "noItems": "No models",
             "selectChannel": "Channel",
             "selectModel": "Model"
@@ -427,7 +444,8 @@
             "autoGroup": "Auto Group",
             "autoGroupNone": "None",
             "autoGroupFuzzy": "Fuzzy",
-            "autoGroupExact": "Exact"
+            "autoGroupExact": "Exact",
+            "autoGroupRegex": "Regex"
         }
     }
 }

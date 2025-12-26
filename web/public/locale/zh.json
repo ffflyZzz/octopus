@@ -162,6 +162,16 @@
                 "outputCost": "输出费用",
                 "requestSuccess": "成功请求",
                 "requestFailed": "失败请求"
+            },
+            "toast": {
+                "createSuccess": "API 密钥创建成功",
+                "createError": "API 密钥创建失败",
+                "updateSuccess": "API 密钥更新成功",
+                "updateError": "API 密钥更新失败",
+                "deleteSuccess": "API 密钥删除成功",
+                "deleteError": "API 密钥删除失败",
+                "copySuccess": "API 密钥已复制",
+                "copyError": "API 密钥复制失败"
             }
         },
         "llmPrice": {
@@ -272,6 +282,9 @@
         },
         "detail": {
             "actions": {
+                "edit": "编辑",
+                "cancel": "取消",
+                "save": "保存",
                 "copyName": "复制名称",
                 "delete": "删除",
                 "confirmDelete": "确认删除"
@@ -279,9 +292,13 @@
         },
         "form": {
             "name": "分组名称",
-            "items": "模型名称",
+            "matchRegex": "匹配正则",
+            "matchRegexPlaceholder": "留空则默认按分组名称模糊匹配",
+            "matchRegexInvalid": "正则无效",
+            "items": "已选模型",
             "addItem": "添加模型",
             "autoAdd": "自动添加",
+            "clear": "清空",
             "noItems": "暂无规则",
             "selectChannel": "渠道",
             "selectModel": "模型"
@@ -427,7 +444,8 @@
             "autoGroup": "自动分组",
             "autoGroupNone": "不自动分组",
             "autoGroupFuzzy": "模糊匹配",
-            "autoGroupExact": "准确匹配"
+            "autoGroupExact": "准确匹配",
+            "autoGroupRegex": "正则匹配"
         }
     }
 }
