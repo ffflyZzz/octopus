@@ -85,10 +85,23 @@ func (m *RelayMetrics) SetInternalResponse(ctx context.Context, resp *transforme
 		modelPrice = *defaultPrice
 	}
 
-	if usage.PromptTokensDetails != nil {
+	if usage.PromptTokensDetails != nil && usage.PromptTokensDetails.CachedTokens > 0 {
+		// 安全计算非缓存 token 数量
+		// 某些提供商（如 Anthropic）的 PromptTokens 仅包含非缓存部分
+		// 其他提供商（如 OpenAI）的 PromptTokens 包含总数（缓存 + 非缓存）
+		nonCachedTokens := usage.PromptTokens - usage.PromptTokensDetails.CachedTokens
+
+		// 如果结果为负数，说明 PromptTokens 已经排除了缓存 token
+		// 此时 PromptTokens 直接代表非缓存 token 数量
+		if nonCachedTokens < 0 {
+			nonCachedTokens = usage.PromptTokens
+		}
+
+		// 计算输入成本：缓存成本 + 非缓存成本
 		m.Stats.InputCost = (float64(usage.PromptTokensDetails.CachedTokens)*modelPrice.CacheRead +
-			float64(usage.PromptTokens-usage.PromptTokensDetails.CachedTokens)*modelPrice.Input) * 1e-6
+			float64(nonCachedTokens)*modelPrice.Input) * 1e-6
 	} else {
+		// 无缓存详情，所有 token 按非缓存价格计费
 		m.Stats.InputCost = float64(usage.PromptTokens) * modelPrice.Input * 1e-6
 	}
 	m.Stats.OutputCost = float64(usage.CompletionTokens) * modelPrice.Output * 1e-6
