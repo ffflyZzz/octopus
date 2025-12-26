@@ -7,10 +7,19 @@ import (
 	"net/http"
 	"net/url"
 	"sync"
+	"time"
 
 	"octopus/internal/model"
 	"octopus/internal/op"
 	"golang.org/x/net/proxy"
+)
+
+const (
+	defaultDialTimeout           = 10 * time.Second
+	defaultKeepAlive             = 30 * time.Second
+	defaultTLSHandshakeTimeout   = 10 * time.Second
+	defaultResponseHeaderTimeout = 15 * time.Second
+	defaultIdleConnTimeout       = 90 * time.Second
 )
 
 var (
@@ -74,6 +83,18 @@ func NewHTTPClient(useProxy bool) (*http.Client, error) {
 		return nil, fmt.Errorf("default transport is not *http.Transport")
 	}
 	cloned := transport.Clone()
+
+	// 连接/握手/响应头超时，避免网络挂死；不设置 Client.Timeout 以兼容流式请求
+	cloned.DialContext = (&net.Dialer{
+		Timeout:   defaultDialTimeout,
+		KeepAlive: defaultKeepAlive,
+	}).DialContext
+	cloned.TLSHandshakeTimeout = defaultTLSHandshakeTimeout
+	cloned.ResponseHeaderTimeout = defaultResponseHeaderTimeout
+	cloned.ExpectContinueTimeout = 1 * time.Second
+	cloned.IdleConnTimeout = defaultIdleConnTimeout
+	cloned.MaxIdleConns = 100
+	cloned.MaxIdleConnsPerHost = 10
 
 	if !useProxy {
 		cloned.Proxy = nil

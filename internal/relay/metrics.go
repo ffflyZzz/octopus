@@ -61,7 +61,7 @@ func (m *RelayMetrics) SetInternalRequest(req *transformerModel.InternalLLMReque
 }
 
 // SetInternalResponse 设置内部响应并计算费用
-func (m *RelayMetrics) SetInternalResponse(resp *transformerModel.InternalLLMResponse) {
+func (m *RelayMetrics) SetInternalResponse(ctx context.Context, resp *transformerModel.InternalLLMResponse) {
 	m.InternalResponse = resp
 
 	// 从响应中提取 Usage 并计算费用
@@ -74,7 +74,7 @@ func (m *RelayMetrics) SetInternalResponse(resp *transformerModel.InternalLLMRes
 	m.Stats.OutputToken = usage.CompletionTokens
 
 	// 计算费用 - 使用渠道特定的价格
-	modelPrice, err := op.LLMGet(m.ActualModel, m.ChannelID)
+	modelPrice, err := op.LLMGet(ctx, m.ActualModel, m.ChannelID)
 	if err != nil {
 		// 如果没有找到渠道特定价格，尝试从价格缓存获取默认价格
 		defaultPrice := price.GetLLMPrice(m.ActualModel)

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 
@@ -45,10 +46,14 @@ func fetchOpenAIModels(client *http.Client, ctx context.Context, request model.C
 	if err != nil {
 		return nil, err
 	}
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+		resp.Body.Close()
+		return nil, fmt.Errorf("openai models request failed: %s: %s", resp.Status, strings.TrimSpace(string(body)))
+	}
 	defer resp.Body.Close()
 
 	var result model.OpenAIModelList
-
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return nil, err
 	}
@@ -85,13 +90,18 @@ func fetchGeminiModels(client *http.Client, ctx context.Context, request model.C
 		if err != nil {
 			return nil, err
 		}
-		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+			resp.Body.Close()
+			return nil, fmt.Errorf("gemini models request failed: %s: %s", resp.Status, strings.TrimSpace(string(body)))
+		}
 
 		var result model.GeminiModelList
-
 		if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+			resp.Body.Close()
 			return nil, err
 		}
+		resp.Body.Close()
 
 		for _, m := range result.Models {
 			name := strings.TrimPrefix(m.Name, "models/")
@@ -109,11 +119,10 @@ func fetchGeminiModels(client *http.Client, ctx context.Context, request model.C
 
 // refer: https://platform.claude.com/docs
 func fetchAnthropicModels(client *http.Client, ctx context.Context, request model.Channel) ([]string, error) {
-
 	var allModels []string
 	var afterID string
-	for {
 
+	for {
 		req, _ := http.NewRequestWithContext(
 			ctx,
 			http.MethodGet,
@@ -121,12 +130,10 @@ func fetchAnthropicModels(client *http.Client, ctx context.Context, request mode
 			nil,
 		)
 		req.Header.Set("X-Api-Key", request.Key)
-		req.Header.Set("Authorization", "Bearer "+request.Key) // 对部分聚合API的兼容
+		req.Header.Set("Authorization", "Bearer "+request.Key)
 		req.Header.Set("Anthropic-Version", "2023-06-01")
 
-		// 设置多页参数
 		q := req.URL.Query()
-
 		if afterID != "" {
 			q.Set("after_id", afterID)
 		}
@@ -136,13 +143,18 @@ func fetchAnthropicModels(client *http.Client, ctx context.Context, request mode
 		if err != nil {
 			return nil, err
 		}
-		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+			resp.Body.Close()
+			return nil, fmt.Errorf("anthropic models request failed: %s: %s", resp.Status, strings.TrimSpace(string(body)))
+		}
 
 		var result model.AnthropicModelList
-
 		if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+			resp.Body.Close()
 			return nil, err
 		}
+		resp.Body.Close()
 
 		for _, m := range result.Data {
 			allModels = append(allModels, m.ID)
@@ -151,7 +163,6 @@ func fetchAnthropicModels(client *http.Client, ctx context.Context, request mode
 		if !result.HasMore {
 			break
 		}
-
 		afterID = result.LastID
 	}
 	return allModels, nil

@@ -81,13 +81,17 @@ func Update(name string, interval time.Duration) {
 // RUN 启动所有注册的任务
 func RUN() {
 	tasksMu.RLock()
-	defer tasksMu.RUnlock()
-
+	entries := make([]*taskEntry, 0, len(tasks))
 	for _, entry := range tasks {
+		entries = append(entries, entry)
+	}
+	tasksMu.RUnlock()
+
+	for _, entry := range entries {
 		go runTask(entry)
 	}
 
-	// 阻塞主协程
+	// 阻塞主协程（但不占用锁）
 	select {}
 }
 

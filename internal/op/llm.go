@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"octopus/internal/db"
 	"octopus/internal/model"
@@ -84,7 +85,22 @@ func LLMBatchDelete(modelNames []string, ctx context.Context) error {
 	if err := db.GetDB().WithContext(ctx).Where("name IN ?", modelNames).Delete(&model.LLMInfo{}).Error; err != nil {
 		return err
 	}
-	llmModelCache.Del(modelNames...)
+
+	// 清理所有 name:channelID 形式的缓存键
+	nameSet := make(map[string]struct{}, len(modelNames))
+	for _, name := range modelNames {
+		nameSet[name] = struct{}{}
+	}
+
+	for key := range llmModelCache.GetAll() {
+		parts := strings.SplitN(key, ":", 2)
+		if len(parts) != 2 {
+			continue
+		}
+		if _, ok := nameSet[parts[0]]; ok {
+			llmModelCache.Del(key)
+		}
+	}
 	return nil
 }
 
@@ -97,7 +113,11 @@ func LLMCreate(m model.LLMInfo, ctx context.Context) error {
 	return nil
 }
 
-func LLMGet(name string, channelID int) (model.LLMPrice, error) {
+func LLMGet(ctx context.Context, name string, channelID int) (model.LLMPrice, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
 	// 尝试从缓存获取指定渠道的价格
 	cacheKey := fmt.Sprintf("%s:%d", name, channelID)
 	price, ok := llmModelCache.Get(cacheKey)
@@ -107,9 +127,8 @@ func LLMGet(name string, channelID int) (model.LLMPrice, error) {
 
 	// 从数据库查询
 	var m model.LLMInfo
-	err := db.GetDB().Where("name = ? AND channel_id = ?", name, channelID).First(&m).Error
+	err := db.GetDB().WithContext(ctx).Where("name = ? AND channel_id = ?", name, channelID).First(&m).Error
 	if err != nil {
-		// 使用 errors.Is 区分数据库错误和记录不存在
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return model.LLMPrice{}, fmt.Errorf("model not found")
 		}

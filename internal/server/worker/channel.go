@@ -84,7 +84,7 @@ func CheckAndAddLLMPrice(channelID int, channelModel, customModel string) {
 				continue
 			}
 			// 检查该渠道是否已经有这个模型
-			_, err := op.LLMGet(modelName, channelID)
+			_, err := op.LLMGet(ctx, modelName, channelID)
 			if err != nil {
 				// 模型不存在，从价格API获取默认价格
 				modelPrice := price.GetLLMPrice(modelName)

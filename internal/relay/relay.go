@@ -346,5 +346,5 @@ func (rc *relayContext) collectResponse() {
 	}
 
 	// 设置响应内容
-	rc.metrics.SetInternalResponse(internalResponse)
+	rc.metrics.SetInternalResponse(rc.c.Request.Context(), internalResponse)
 }

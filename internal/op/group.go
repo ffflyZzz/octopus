@@ -327,6 +327,11 @@ func groupRefreshCache(ctx context.Context) error {
 		Find(&groups).Error; err != nil {
 		return err
 	}
+
+	// 清空旧缓存，避免残留旧名称映射
+	groupCache.Clear()
+	groupMap.Clear()
+
 	for _, group := range groups {
 		groupCache.Set(group.ID, group)
 		groupMap.Set(group.Name, group)
@@ -340,6 +345,10 @@ func groupRefreshCacheByID(id int, ctx context.Context) error {
 		Preload("Items").
 		First(&group, id).Error; err != nil {
 		return err
+	}
+
+	if old, ok := groupCache.Get(group.ID); ok && old.Name != group.Name {
+		groupMap.Del(old.Name)
 	}
 	groupCache.Set(group.ID, group)
 	groupMap.Set(group.Name, group)
@@ -358,6 +367,9 @@ func groupRefreshCacheByIDs(ids []int, ctx context.Context) error {
 		return err
 	}
 	for _, group := range groups {
+		if old, ok := groupCache.Get(group.ID); ok && old.Name != group.Name {
+			groupMap.Del(old.Name)
+		}
 		groupCache.Set(group.ID, group)
 		groupMap.Set(group.Name, group)
 	}
