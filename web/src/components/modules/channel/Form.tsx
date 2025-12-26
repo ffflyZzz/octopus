@@ -53,6 +53,9 @@ export function ChannelForm({
 }: ChannelFormProps) {
     const t = useTranslations('channel.form');
 
+    // 获取渠道类型列表
+    const { data: channelTypes, isLoading: isLoadingTypes } = useChannelTypes();
+
     const autoModels = formData.model
         ? formData.model.split(',').map((m) => m.trim()).filter(Boolean)
         : [];
