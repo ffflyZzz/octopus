@@ -1,4 +1,4 @@
-import { AutoGroupType, ChannelType, useFetchModel } from '@/api/endpoints/channel';
+import { AutoGroupType, ChannelType, useFetchModel, useChannelTypes } from '@/api/endpoints/channel';
 import {
     Select,
     SelectContent,
@@ -51,6 +51,9 @@ export function ChannelForm({
     idPrefix = 'channel',
 }: ChannelFormProps) {
     const t = useTranslations('channel.form');
+
+    // 获取渠道类型列表
+    const { data: channelTypes, isLoading: isLoadingTypes } = useChannelTypes();
 
     const [autoModels, setAutoModels] = useState<string[]>(
         formData.model ? formData.model.split(',').filter(m => m.trim()) : []
@@ -155,10 +158,17 @@ export function ChannelForm({
                         <SelectValue />
                     </SelectTrigger>
                     <SelectContent className='rounded-xl'>
-                        <SelectItem className='rounded-xl' value={String(ChannelType.OpenAIChat)}>{t('typeOpenAIChat')}</SelectItem>
-                        <SelectItem className='rounded-xl' value={String(ChannelType.OpenAIResponse)}>{t('typeOpenAIResponse')}</SelectItem>
-                        <SelectItem className='rounded-xl' value={String(ChannelType.Anthropic)}>{t('typeAnthropic')}</SelectItem>
-                        <SelectItem className='rounded-xl' value={String(ChannelType.Gemini)}>{t('typeGemini')}</SelectItem>
+                        {isLoadingTypes ? (
+                            <SelectItem className='rounded-xl' value="-1" disabled>
+                                {t('loading') || 'Loading...'}
+                            </SelectItem>
+                        ) : (
+                            channelTypes?.map((type) => (
+                                <SelectItem key={type.value} className='rounded-xl' value={String(type.value)}>
+                                    {type.label}
+                                </SelectItem>
+                            ))
+                        )}
                     </SelectContent>
                 </Select>
             </div>

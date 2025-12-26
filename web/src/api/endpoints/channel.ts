@@ -3,14 +3,25 @@ import { apiClient } from '../client';
 import { logger } from '@/lib/logger';
 import { formatCount, formatMoney, formatTime } from '@/lib/utils';
 import { StatsChannel, type StatsMetricsFormatted } from './stats';
+
 /**
- * 渠道类型枚举
+ * 渠道类型信息
+ */
+export interface ChannelTypeInfo {
+    value: number;  // 渠道类型值
+    name: string;   // 渠道类型名称（用于前端标识）
+    label: string;  // 渠道类型显示标签
+}
+
+/**
+ * 渠道类型枚举（保留用于向后兼容和类型安全）
  */
 export enum ChannelType {
     OpenAIChat = 0,
     OpenAIResponse = 1,
     Anthropic = 2,
     Gemini = 3,
+    Antigravity = 4,
 }
 
 /**
@@ -65,13 +76,13 @@ export type UpdateChannelRequest = Pick<Channel, 'id'> & ChannelBase;
 
 /**
  * 获取渠道列表 Hook
- * 
+ *
  * @example
  * const { data: channels, isLoading, error } = useChannelList();
- * 
+ *
  * if (isLoading) return <Loading />;
  * if (error) return <Error message={error.message} />;
- * 
+ *
  * channels?.forEach(channel => console.log(channel.raw.name));
  */
 export function useChannelList() {
@@ -97,6 +108,24 @@ export function useChannelList() {
         })),
         refetchInterval: 30000,
         refetchOnMount: 'always',
+    });
+}
+
+/**
+ * 获取渠道类型列表 Hook
+ *
+ * @example
+ * const { data: channelTypes } = useChannelTypes();
+ *
+ * channelTypes?.forEach(type => console.log(type.label));
+ */
+export function useChannelTypes() {
+    return useQuery({
+        queryKey: ['channels', 'types'],
+        queryFn: async () => {
+            return apiClient.get<ChannelTypeInfo[]>('/api/v1/channel/types');
+        },
+        staleTime: Infinity, // 渠道类型很少变化，永久缓存
     });
 }
 

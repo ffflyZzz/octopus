@@ -48,6 +48,10 @@ func init() {
 		AddRoute(
 			router.NewRoute("/last-sync-time", http.MethodGet).
 				Handle(getLastSyncTime),
+		).
+		AddRoute(
+			router.NewRoute("/types", http.MethodGet).
+				Handle(getChannelTypes),
 		)
 }
 
@@ -133,4 +137,9 @@ func syncChannel(c *gin.Context) {
 func getLastSyncTime(c *gin.Context) {
 	time := task.GetLastSyncTime()
 	resp.Success(c, time)
+}
+
+func getChannelTypes(c *gin.Context) {
+	types := model.GetAllChannelTypes()
+	resp.Success(c, types)
 }
