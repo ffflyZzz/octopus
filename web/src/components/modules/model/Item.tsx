@@ -35,6 +35,7 @@ function ModelItemContent({ model }: ModelItemProps) {
     const { setIsOpen, triggerRef, uniqueId, isOpen } = useMorphingDialog();
     const [confirmDelete, setConfirmDelete] = useState(false);
     const [detachCard, setDetachCard] = useState(false);
+    const [freezeMorph, setFreezeMorph] = useState(false);
     const instanceId = useId();
     const deleteLayoutId = `delete-btn-${model.name}-${instanceId}`;
     const [editValues, setEditValues] = useState(() => ({
@@ -59,9 +60,14 @@ function ModelItemContent({ model }: ModelItemProps) {
     }, [model]);
 
     useEffect(() => {
-        if (!isOpen) {
-            setDetachCard(false);
+        if (isOpen) {
+            // 弹窗打开后冻结 morph，避免输入变化触发布局动画
+            const id = requestAnimationFrame(() => setFreezeMorph(true));
+            return () => cancelAnimationFrame(id);
         }
+        // 关闭时重置，保留关门 morph 动画
+        setFreezeMorph(false);
+        setDetachCard(false);
     }, [isOpen]);
 
     const handleEditOpen = useCallback(() => {
@@ -72,6 +78,7 @@ function ModelItemContent({ model }: ModelItemProps) {
     }, [resetEditValues, setIsOpen]);
 
     const closeDialog = useCallback(() => {
+        setFreezeMorph(false); // 重置以保留关门 morph 动画
         setDetachCard(true);
         setIsOpen(false);
     }, [setIsOpen]);
@@ -117,7 +124,7 @@ function ModelItemContent({ model }: ModelItemProps) {
     return (
         <>
             <motion.article
-                layoutId={detachCard ? undefined : `dialog-${uniqueId}`}
+                layoutId={detachCard || freezeMorph ? undefined : `dialog-${uniqueId}`}
                 className={cn(
                     'group relative min-h-28 rounded-3xl border border-border bg-card custom-shadow transition-all duration-300 flex items-center gap-3 p-4',
                     confirmDelete && 'z-50'
@@ -192,6 +199,7 @@ function ModelItemContent({ model }: ModelItemProps) {
 
             <MorphingDialogContainer>
                 <MorphingDialogContent
+                    disableMorph={freezeMorph}
                     onRequestClose={closeDialog}
                     className="w-full max-w-lg rounded-3xl border border-border bg-card text-card-foreground p-6 custom-shadow max-h-[90vh] overflow-y-auto"
                 >
@@ -216,7 +224,7 @@ function ModelItemContent({ model }: ModelItemProps) {
                             </motion.button>
                         </header>
                     </MorphingDialogTitle>
-                    <MorphingDialogDescription>
+                    <MorphingDialogDescription disableLayoutAnimation>
                         <div id={`motion-ui-morphing-dialog-description-${uniqueId}`}>
                             <ModelEditDialog
                                 brandColor={brandColor}
