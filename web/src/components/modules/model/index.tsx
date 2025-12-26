@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useModelList } from '@/api/endpoints/model';
 import { useChannelList } from '@/api/endpoints/channel';
@@ -23,6 +23,7 @@ export function Model() {
     const setPage = usePaginationStore((s) => s.setPage);
     const pageSize = usePaginationStore((s) => s.getPageSize(pageKey));
     const setPageSize = usePaginationStore((s) => s.setPageSize);
+    const direction = usePaginationStore((s) => s.getDirection(pageKey));
 
     // 构建渠道列表（每个渠道一个标签页）
     const channels = useMemo(() => {
@@ -78,12 +79,6 @@ export function Model() {
         const end = start + pageSize;
         return filteredModels.slice(start, end);
     }, [filteredModels, page, pageSize]);
-
-    const prevPageRef = useRef(page);
-    const direction = page > prevPageRef.current ? 1 : page < prevPageRef.current ? -1 : 1;
-    useEffect(() => {
-        prevPageRef.current = page;
-    }, [page]);
 
     return (
         <div className="space-y-4">
