@@ -15,11 +15,11 @@ import (
 )
 
 const (
-	defaultDialTimeout           = 10 * time.Second
-	defaultKeepAlive             = 30 * time.Second
-	defaultTLSHandshakeTimeout   = 10 * time.Second
-	defaultResponseHeaderTimeout = 15 * time.Second
-	defaultIdleConnTimeout       = 90 * time.Second
+	defaultDialTimeout           = 60 * time.Second
+	defaultKeepAlive             = 60 * time.Second
+	defaultTLSHandshakeTimeout   = 60 * time.Second
+	defaultResponseHeaderTimeout = 60 * time.Second
+	defaultIdleConnTimeout       = 60 * time.Second
 )
 
 var (
