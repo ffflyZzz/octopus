@@ -15,13 +15,14 @@
 
 - 🔀 **Multi-Channel Aggregation** - Connect multiple LLM provider channels with unified management
 - ⚖️ **Load Balancing** - Automatic request distribution for stable and efficient service
-- 🔄 **Protocol Conversion** - Seamless conversion between OpenAI Chat / OpenAI Responses / Anthropic API formats
+- 🔄 **Protocol Conversion** - Seamless conversion between OpenAI Chat / OpenAI Responses / Anthropic / Gemini / Antigravity API formats
 - 💰 **Price Sync** - Automatic model pricing updates
 - 🔃 **Model Sync** - Automatic synchronization of available model lists with channels
 - 📊 **Analytics** - Comprehensive request statistics, token consumption, and cost tracking
 - 🎨 **Elegant UI** - Clean and beautiful web management panel
 - 🗄️ **Multi-Database Support** - Support for SQLite, MySQL, PostgreSQL
 - 🏷️ **Per-Channel Model Pricing** - Independent model pricing configuration for each channel, supporting same model names across different channels with unique pricing
+- 🔌 **Dynamic Channel Types** - Channel types are fetched from backend API, making it easy to add new provider support
 
 
 ## 🚀 Quick Start
@@ -273,8 +274,20 @@ The program automatically appends API paths based on channel type. You only need
 | OpenAI Responses | `/responses` | `https://api.openai.com/v1` | `https://api.openai.com/v1/responses` |
 | Anthropic | `/messages` | `https://api.anthropic.com/v1` | `https://api.anthropic.com/v1/messages` |
 | Gemini | `/models/:model:generateContent` | `https://generativelanguage.googleapis.com/v1beta` | `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent` |
+| Antigravity | `/v1internal:streamGenerateContent` or `/v1internal:generateContent` | `https://daily-cloudcode-pa.sandbox.googleapis.com` | `https://daily-cloudcode-pa.sandbox.googleapis.com/v1internal:streamGenerateContent` |
 
 > 💡 **Tip**: No need to include specific API endpoint paths in the Base URL - the program handles this automatically.
+
+**Antigravity Channel:**
+
+Antigravity provides access to Google's Claude models through their internal API:
+
+- **Base URL**: `https://daily-cloudcode-pa.sandbox.googleapis.com`
+- **API Key**: Supports both Refresh Token (starting with `1//`) and Access Token (starting with `ya29.`)
+- **Auto Token Refresh**: When using Refresh Token, the system automatically refreshes access tokens before expiration
+- **Models**: Supports Claude models like `claude-sonnet-4-5-20250929`, `claude-opus-4-5-20251101`, etc.
+
+> 💡 **Tip**: The system intelligently detects token type and handles refresh automatically. Refresh tokens are cached and refreshed 5 minutes before expiration.
 
 ---
 

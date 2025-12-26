@@ -15,13 +15,14 @@
 
 - 🔀 **多渠道聚合** - 支持接入多个 LLM 供应商渠道，统一管理
 - ⚖️ **负载均衡** - 自动分配请求，确保服务稳定高效
-- 🔄 **协议互转** - 支持 OpenAI Chat / OpenAI Responses / Anthropic 三种 API 格式互相转换
+- 🔄 **协议互转** - 支持 OpenAI Chat / OpenAI Responses / Anthropic / Gemini / Antigravity 五种 API 格式互相转换
 - 💰 **价格同步** - 自动更新模型价格
 - 🔃 **模型同步** - 自动与渠道同步可用模型列表，省心省力
 - 📊 **数据统计** - 全面的请求统计、Token 消耗、费用追踪
 - 🎨 **优雅界面** - 简洁美观的 Web 管理面板
 - 🗄️ **多数据库支持** - 支持 SQLite、MySQL、PostgreSQL
 - 🏷️ **渠道独立定价** - 每个渠道可独立配置模型价格，支持同名模型在不同渠道下设置不同价格
+- 🔌 **动态渠道类型** - 渠道类型从后端 API 动态获取，便于扩展新的供应商支持
 
 
 ## 🚀 快速开始
@@ -273,8 +274,20 @@ API 密钥按以下顺序解析：
 | OpenAI Responses | `/responses` | `https://api.openai.com/v1` | `https://api.openai.com/v1/responses` |
 | Anthropic | `/messages` | `https://api.anthropic.com/v1` | `https://api.anthropic.com/v1/messages` |
 | Gemini | `/models/:model:generateContent` | `https://generativelanguage.googleapis.com/v1beta` | `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent` |
+| Antigravity | `/v1internal:streamGenerateContent` 或 `/v1internal:generateContent` | `https://daily-cloudcode-pa.sandbox.googleapis.com` | `https://daily-cloudcode-pa.sandbox.googleapis.com/v1internal:streamGenerateContent` |
 
 > 💡 **提示**：填写 Base URL 时无需包含具体的 API 端点路径，程序会自动处理。
+
+**Antigravity 渠道：**
+
+Antigravity 通过 Google 内部 API 提供对 Claude 模型的访问：
+
+- **Base URL**：`https://daily-cloudcode-pa.sandbox.googleapis.com`
+- **API Key**：支持 Refresh Token（`1//` 开头）和 Access Token（`ya29.` 开头）两种格式
+- **自动刷新令牌**：使用 Refresh Token 时，系统会在过期前自动刷新 Access Token
+- **模型支持**：支持 Claude 模型，如 `claude-sonnet-4-5-20250929`、`claude-opus-4-5-20251101` 等
+
+> 💡 **提示**：系统会智能检测令牌类型并自动处理刷新。Refresh Token 会被缓存，并在过期前 5 分钟自动刷新。
 
 ---
 
