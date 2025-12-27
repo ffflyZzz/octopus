@@ -208,11 +208,24 @@ func (rc *relayContext) forward() error {
 	return rc.handleResponse(ctx, response)
 }
 
-// copyHeaders 复制请求头，过滤 hop-by-hop 头
+// copyHeaders 复制请求头，过滤 hop-by-hop 头和需要忽略的头
 func (rc *relayContext) copyHeaders(outboundRequest *http.Request) {
+	// Antigravity 渠道需要忽略这些头部（由 adapter 设置正确的值）
+	// 其他渠道可以正常复制
+	isAntigravity := rc.channel.Type == outbound.OutboundTypeAntigravity
+
 	for key, values := range rc.c.Request.Header {
-		if hopByHopHeaders[strings.ToLower(key)] {
+		keyLower := strings.ToLower(key)
+		if hopByHopHeaders[keyLower] {
 			continue
+		}
+		// Antigravity 渠道需要排除由 adapter 设置的头部
+		if isAntigravity {
+			if keyLower == "authorization" || keyLower == "content-type" ||
+				keyLower == "content-length" || keyLower == "host" ||
+				keyLower == "user-agent" || keyLower == "accept" {
+				continue
+			}
 		}
 		for _, value := range values {
 			outboundRequest.Header.Set(key, value)
