@@ -3,8 +3,8 @@ package middleware
 import (
 	"strings"
 
-	"github.com/bestruirui/octopus/internal/model"
-	"github.com/bestruirui/octopus/internal/op"
+	"octopus/internal/model"
+	"octopus/internal/op"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
