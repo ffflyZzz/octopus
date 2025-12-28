@@ -3,18 +3,19 @@
 import { useTranslations } from 'next-intl';
 import { Info, Tag, Github, RefreshCw, AlertTriangle, Download, Loader2 } from 'lucide-react';
 import { APP_VERSION, GITHUB_REPO } from '@/lib/info';
-import { useVersionInfo, useUpdateCore } from '@/api/endpoints/update';
+import { useLatestInfo, useNowVersion, useUpdateCore } from '@/api/endpoints/update';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/common/Toast';
 import { isOctopusCacheName, SW_MESSAGE_TYPE } from '@/lib/sw';
 
 export function SettingInfo() {
     const t = useTranslations('setting');
-    const { data: versionInfo, isLoading } = useVersionInfo();
+    const latestInfoQuery = useLatestInfo();
+    const nowVersionQuery = useNowVersion();
     const updateCore = useUpdateCore();
 
-    const backendNowVersion = versionInfo?.now_version || '';
-    const latestVersion = versionInfo?.latest_version || '';
+    const backendNowVersion = nowVersionQuery.data || '';
+    const latestVersion = latestInfoQuery.data?.tag_name || '';
 
     // TODO: 暂时禁用版本检查，fork 仓库暂不需要
     // 前端版本与后端当前版本不一致 → 浏览器缓存问题
@@ -88,7 +89,7 @@ export function SettingInfo() {
                     <span className="text-sm font-medium">{t('info.currentVersion')}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                    {isLoading ? (
+                    {nowVersionQuery.isLoading ? (
                         <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                     ) : (
                         <code className="text-sm font-mono text-muted-foreground">
@@ -104,9 +105,15 @@ export function SettingInfo() {
                     <Download className="h-5 w-5 text-muted-foreground" />
                     <span className="text-sm font-medium">{t('info.latestVersion')}</span>
                 </div>
-                <code className="text-sm font-mono text-muted-foreground">
-                    {isLoading ? '...' : (latestVersion || t('info.unknown'))}
-                </code>
+                <div className="flex items-center gap-2">
+                    {latestInfoQuery.isLoading ? (
+                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                    ) : (
+                        <code className="text-sm font-mono text-muted-foreground">
+                            {latestVersion || t('info.unknown')}
+                        </code>
+                    )}
+                </div>
             </div>
 
             {/* 浏览器缓存问题警告 */}
@@ -142,9 +149,14 @@ export function SettingInfo() {
                 <div className="p-3 bg-primary/10 border border-primary/20 rounded-xl space-y-2">
                     <div className="flex items-start gap-3">
                         <Download className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                        <p className="text-sm text-primary font-medium">
-                            {t('info.newVersionAvailable')}
-                        </p>
+                        <div className="flex-1 space-y-1">
+                            <p className="text-sm text-primary font-medium">
+                                {t('info.newVersionAvailable')}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                                {t('info.newVersionAvailableHint')}
+                            </p>
+                        </div>
                     </div>
                     <div className="flex justify-end">
                         <Button

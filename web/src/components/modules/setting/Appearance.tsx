@@ -25,27 +25,21 @@ export function SettingAppearance() {
                     <span className="text-sm font-medium">{t('theme.label')}</span>
                 </div>
                 <Select value={theme} onValueChange={setTheme}>
-                    <SelectTrigger className="w-28 rounded-xl">
+                    <SelectTrigger className="w-36 rounded-xl">
                         <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="light">
-                            <div className="flex items-center gap-2">
-                                <Sun className="h-4 w-4" />
-                                {t('theme.light')}
-                            </div>
+                    <SelectContent className="rounded-xl">
+                        <SelectItem value="light" className="rounded-xl">
+                            <Sun className="h-4 w-4" />
+                            {t('theme.light')}
                         </SelectItem>
-                        <SelectItem value="dark">
-                            <div className="flex items-center gap-2">
-                                <Moon className="h-4 w-4" />
-                                {t('theme.dark')}
-                            </div>
+                        <SelectItem value="dark" className="rounded-xl">
+                            <Moon className="h-4 w-4" />
+                            {t('theme.dark')}
                         </SelectItem>
-                        <SelectItem value="system">
-                            <div className="flex items-center gap-2">
-                                <Monitor className="h-4 w-4" />
-                                {t('theme.system')}
-                            </div>
+                        <SelectItem value="system" className="rounded-xl">
+                            <Monitor className="h-4 w-4" />
+                            {t('theme.system')}
                         </SelectItem>
                     </SelectContent>
                 </Select>
@@ -58,12 +52,12 @@ export function SettingAppearance() {
                     <span className="text-sm font-medium">{t('language.label')}</span>
                 </div>
                 <Select value={locale} onValueChange={(v) => setLocale(v as Locale)}>
-                    <SelectTrigger className="w-28 rounded-xl">
+                    <SelectTrigger className="w-36 rounded-xl">
                         <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="zh">{t('language.zh')}</SelectItem>
-                        <SelectItem value="en">{t('language.en')}</SelectItem>
+                    <SelectContent className="rounded-xl">
+                        <SelectItem value="zh" className="rounded-xl">{t('language.zh')}</SelectItem>
+                        <SelectItem value="en" className="rounded-xl">{t('language.en')}</SelectItem>
                     </SelectContent>
                 </Select>
             </div>

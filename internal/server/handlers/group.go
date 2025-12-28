@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"net/http"
-	"regexp"
 	"strconv"
 
 	"octopus/internal/model"
@@ -10,6 +9,8 @@ import (
 	"octopus/internal/server/middleware"
 	"octopus/internal/server/resp"
 	"octopus/internal/server/router"
+
+	"github.com/dlclark/regexp2"
 	"github.com/gin-gonic/gin"
 )
 
@@ -55,7 +56,7 @@ func createGroup(c *gin.Context) {
 		return
 	}
 	if group.MatchRegex != "" {
-		_, err := regexp.Compile(group.MatchRegex)
+		_, err := regexp2.Compile(group.MatchRegex, regexp2.ECMAScript)
 		if err != nil {
 			resp.Error(c, http.StatusBadRequest, err.Error())
 			return
@@ -75,7 +76,7 @@ func updateGroup(c *gin.Context) {
 		return
 	}
 	if req.MatchRegex != nil {
-		_, err := regexp.Compile(*req.MatchRegex)
+		_, err := regexp2.Compile(*req.MatchRegex, regexp2.ECMAScript)
 		if err != nil {
 			resp.Error(c, http.StatusBadRequest, err.Error())
 			return
