@@ -6,7 +6,7 @@ import { APP_VERSION, GITHUB_REPO } from '@/lib/info';
 import { useLatestInfo, useNowVersion, useUpdateCore } from '@/api/endpoints/update';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/common/Toast';
-import { isOctopusCacheName, SW_MESSAGE_TYPE } from '@/lib/sw';
+import { isOctopusCacheName, isFontCacheName, SW_MESSAGE_TYPE } from '@/lib/sw';
 
 export function SettingInfo() {
     const t = useTranslations('setting');
@@ -28,10 +28,14 @@ export function SettingInfo() {
         if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
             navigator.serviceWorker.controller.postMessage({ type: SW_MESSAGE_TYPE.CLEAR_CACHE });
         }
-        // 同时也从主线程清理（双保险）
+        // 同时也从主线程清理（双保险），但保留字体缓存
         if ('caches' in window) {
             const names = await caches.keys();
-            await Promise.all(names.filter(isOctopusCacheName).map((name) => caches.delete(name)));
+            await Promise.all(
+                names
+                    .filter((name) => isOctopusCacheName(name) && !isFontCacheName(name))
+                    .map((name) => caches.delete(name))
+            );
         }
         // 注销当前 SW，下次加载会重新注册
         if ('serviceWorker' in navigator) {

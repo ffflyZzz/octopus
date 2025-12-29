@@ -171,6 +171,7 @@ All configuration options can be overridden via environment variables using the 
 | `OCTOPUS_DATABASE_TYPE` | `database.type` |
 | `OCTOPUS_DATABASE_PATH` | `database.path` |
 | `OCTOPUS_LOG_LEVEL` | `log.level` |
+| `OCTOPUS_GITHUB_PAT` | For rate limiting when getting the latest version (optional) |
 
 ### 🔌 Amp CLI Integration
 
@@ -203,7 +204,6 @@ The API key is resolved in the following order:
 3. **Amp secrets file**: `~/.local/share/amp/secrets.json`
 
 > 💡 **Tip**: If you have Amp CLI installed locally, Octopus can automatically use its stored credentials.
-
 
 ## 📸 Screenshots
 
