@@ -31,7 +31,7 @@ type AmpCode struct {
 }
 
 type RateLimit struct {
-	RPS int `mapstructure:"rps"` // 每秒请求数，0=不限流
+	MaxConcurrentRequests int `mapstructure:"max_concurrent_requests"` // 最大并发请求数，0=不限制
 }
 
 type Config struct {
@@ -92,5 +92,5 @@ func setDefaults() {
 	viper.SetDefault("ampcode.upstream_url", "https://ampcode.com")
 	viper.SetDefault("ampcode.restrict_management_to_localhost", false)
 	// RateLimit defaults
-	viper.SetDefault("ratelimit.rps", 0) // 默认不限流
+	viper.SetDefault("ratelimit.max_concurrent_requests", 0) // 默认不限制并发
 }

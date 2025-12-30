@@ -9,51 +9,52 @@ import (
 	"octopus/internal/utils/log"
 
 	"github.com/gin-gonic/gin"
-	"golang.org/x/time/rate"
 )
 
-// globalLimiter 全局限流器
-var globalLimiter *rate.Limiter
+// globalSemaphore 全局并发限制器
+var globalSemaphore chan struct{}
 
-// InitRateLimit 初始化全局限流器
-// rps: 每秒允许的请求数，0 表示不限流
-func InitRateLimit(rps int) {
-	if rps <= 0 {
-		globalLimiter = nil
-		log.Infof("rate limit disabled")
+// InitRateLimit 初始化全局并发限制器
+// maxConcurrent: 最大并发请求数，0 表示不限制
+func InitRateLimit(maxConcurrent int) {
+	if maxConcurrent <= 0 {
+		globalSemaphore = nil
+		log.Infof("concurrency limit disabled")
 		return
 	}
-	// burst 设置为 rps，允许短时间突发
-	globalLimiter = rate.NewLimiter(rate.Limit(rps), rps)
-	log.Infof("rate limit enabled: %d requests per second", rps)
+	globalSemaphore = make(chan struct{}, maxConcurrent)
+	log.Infof("concurrency limit enabled: max %d concurrent requests", maxConcurrent)
 }
 
-// RateLimit 返回限流中间件
+// RateLimit 返回并发限制中间件
 func RateLimit() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// 如果未启用限流，直接放行
-		if globalLimiter == nil {
+		// 如果未启用限制，直接放行
+		if globalSemaphore == nil {
 			c.Next()
 			return
 		}
 
-		// 等待获取 token（阻塞直到可以通过）
-		err := globalLimiter.Wait(c.Request.Context())
-		if err != nil {
+		// 尝试获取并发令牌（阻塞直到可以通过）
+		select {
+		case globalSemaphore <- struct{}{}:
+			// 获取成功，请求结束时释放
+			defer func() { <-globalSemaphore }()
+			c.Next()
+		case <-c.Request.Context().Done():
+			// 请求被取消或超时
+			err := c.Request.Context().Err()
 			if errors.Is(err, context.Canceled) {
-				log.Infof("request canceled while waiting for rate limit")
+				log.Infof("request canceled while waiting for concurrency slot")
 				return
 			}
 			if errors.Is(err, context.DeadlineExceeded) {
-				resp.Error(c, http.StatusRequestTimeout, "rate limit wait timeout")
+				resp.Error(c, http.StatusRequestTimeout, "concurrency wait timeout")
 				c.Abort()
 				return
 			}
-			resp.Error(c, http.StatusTooManyRequests, "rate limit exceeded")
+			resp.Error(c, http.StatusTooManyRequests, "concurrency limit exceeded")
 			c.Abort()
-			return
 		}
-
-		c.Next()
 	}
 }
