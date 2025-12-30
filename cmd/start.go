@@ -5,6 +5,7 @@ import (
 	"octopus/internal/db"
 	"octopus/internal/op"
 	"octopus/internal/server"
+	"octopus/internal/server/middleware"
 	"octopus/internal/task"
 	"octopus/internal/utils/log"
 	"octopus/internal/utils/shutdown"
@@ -20,6 +21,7 @@ var startCmd = &cobra.Command{
 		conf.PrintBanner()
 		conf.Load(cfgFile)
 		log.SetLevel(conf.AppConfig.Log.Level)
+		middleware.InitRateLimit(conf.AppConfig.RateLimit.RPS)
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		shutdown.Init(log.Logger)

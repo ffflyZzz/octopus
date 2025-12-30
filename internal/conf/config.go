@@ -30,11 +30,16 @@ type AmpCode struct {
 	RestrictManagementToLocalhost bool   `mapstructure:"restrict_management_to_localhost"`
 }
 
+type RateLimit struct {
+	RPS int `mapstructure:"rps"` // 每秒请求数，0=不限流
+}
+
 type Config struct {
-	Server   Server   `mapstructure:"server"`
-	Log      Log      `mapstructure:"log"`
-	Database Database `mapstructure:"database"`
-	AmpCode  AmpCode  `mapstructure:"ampcode"`
+	Server    Server    `mapstructure:"server"`
+	Log       Log       `mapstructure:"log"`
+	Database  Database  `mapstructure:"database"`
+	AmpCode   AmpCode   `mapstructure:"ampcode"`
+	RateLimit RateLimit `mapstructure:"ratelimit"`
 }
 
 var AppConfig Config
@@ -86,4 +91,6 @@ func setDefaults() {
 	viper.SetDefault("ampcode.enabled", false)
 	viper.SetDefault("ampcode.upstream_url", "https://ampcode.com")
 	viper.SetDefault("ampcode.restrict_management_to_localhost", false)
+	// RateLimit defaults
+	viper.SetDefault("ratelimit.rps", 0) // 默认不限流
 }

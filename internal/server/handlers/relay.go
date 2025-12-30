@@ -14,6 +14,7 @@ func init() {
 	router.NewGroupRouter("/v1").
 		Use(middleware.APIKeyAuth()).
 		Use(middleware.RequireJSON()).
+		Use(middleware.RateLimit()).
 		AddRoute(
 			router.NewRoute("/chat/completions", http.MethodPost).
 				Handle(chat),
