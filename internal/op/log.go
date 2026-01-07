@@ -183,7 +183,21 @@ func relayLogCleanup(ctx context.Context) error {
 	}
 
 	cutoffTime := time.Now().Add(-time.Duration(keepPeriod) * 24 * time.Hour).Unix()
-	return db.GetDB().WithContext(ctx).Where("time < ?", cutoffTime).Delete(&model.RelayLog{}).Error
+	result := db.GetDB().WithContext(ctx).Where("time < ?", cutoffTime).Delete(&model.RelayLog{})
+	if result.Error != nil {
+		return result.Error
+	}
+
+	// 如果有数据被删除，执行增量 vacuum 释放 SQLite 数据库空间
+	// 配合 _auto_vacuum=INCREMENTAL 设置使用
+	if result.RowsAffected > 0 {
+		log.Debugf("relay log cleanup: deleted %d rows, running incremental vacuum", result.RowsAffected)
+		if err := db.GetDB().Exec("PRAGMA incremental_vacuum(1000)").Error; err != nil {
+			log.Warnf("incremental vacuum failed: %v", err)
+		}
+	}
+
+	return nil
 }
 
 // RelayLogList 查询日志列表，支持可选的时间范围过滤
