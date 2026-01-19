@@ -851,7 +851,7 @@ func convertAnthropicUsage(usage *anthropicModel.Usage) *model.Usage {
 	}
 
 	result := &model.Usage{
-		PromptTokens:             usage.InputTokens,
+		PromptTokens:             usage.InputTokens + usage.CacheReadInputTokens,
 		CompletionTokens:         usage.OutputTokens,
 		TotalTokens:              usage.InputTokens + usage.OutputTokens + usage.CacheReadInputTokens + usage.CacheCreationInputTokens,
 		CacheCreationInputTokens: usage.CacheCreationInputTokens,
