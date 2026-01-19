@@ -11,11 +11,12 @@ import (
 )
 
 const (
-	TaskPriceUpdate    = "price_update"
-	TaskStatsSave      = "stats_save"
-	TaskRelayLogSave   = "relay_log_save"
-	TaskSyncLLM        = "sync_llm"
-	TaskLLMCacheRefresh = "llm_cache_refresh"
+	TaskPriceUpdate  = "price_update"
+	TaskStatsSave    = "stats_save"
+	TaskRelayLogSave = "relay_log_save"
+	TaskSyncLLM      = "sync_llm"
+	TaskCleanLLM     = "clean_llm"
+	TaskBaseUrlDelay = "base_url_delay"
 )
 
 func Init() {
@@ -32,6 +33,9 @@ func Init() {
 		}
 	})
 
+	// 注册基础URL延迟任务
+	Register(TaskBaseUrlDelay, 1*time.Hour, true, ChannelBaseUrlDelayTask)
+
 	// 注册LLM同步任务
 	syncLLMIntervalHours, err := op.SettingGetInt(model.SettingKeySyncLLMInterval)
 	if err != nil {
@@ -39,7 +43,7 @@ func Init() {
 		return
 	}
 	syncLLMInterval := time.Duration(syncLLMIntervalHours) * time.Hour
-	Register(string(model.SettingKeySyncLLMInterval), syncLLMInterval, true, SyncLLMTask)
+	Register(string(model.SettingKeySyncLLMInterval), syncLLMInterval, true, SyncModelsTask)
 
 	// 注册统计保存任务
 	statsSaveIntervalMinutes, err := op.SettingGetInt(model.SettingKeyStatsSaveInterval)
@@ -55,12 +59,4 @@ func Init() {
 			log.Warnf("relay log save db task failed: %v", err)
 		}
 	})
-
-	// 注册 LLM 价格缓存刷新任务（每5分钟刷新一次，确保缓存与数据库同步）
-	Register(TaskLLMCacheRefresh, 5*time.Minute, false, func() {
-		if err := op.LLMRefreshCache(context.Background()); err != nil {
-			log.Warnf("llm cache refresh task failed: %v", err)
-		}
-	})
-
 }

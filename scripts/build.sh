@@ -86,6 +86,15 @@ prepare_environment() {
     local go_version=$(go version 2>/dev/null | grep -o 'go[0-9]\+\.[0-9]\+' | head -1)
     log_success "Go version: $go_version"
 
+    # Check Python
+    if ! command_exists python3; then
+        log_error "Python is not installed. Please install Python from https://www.python.org/downloads/"
+        return 1
+    fi
+
+    local python_version=$(python3 --version 2>/dev/null)
+    log_success "Python version: $python_version"
+
     # Check Node.js
     if ! command_exists node; then
         log_error "Node.js is not installed. Please install Node.js from https://nodejs.org/"
@@ -106,36 +115,38 @@ prepare_environment() {
 
     # Check git
     if ! command_exists git; then
-        install_command git git || return 1
+        log_error "git is not installed."
+        return 1
     fi
 
     # Check curl
     if ! command_exists curl; then
-        install_command curl curl || return 1
+        log_error "curl is not installed."
+        return 1
     fi
 
     # Check unzip
     if ! command_exists unzip; then
-        install_command unzip unzip || return 1
+        log_error "unzip is not installed."
+        return 1
     fi
 
     # Check tar
     if ! command_exists tar; then
-        install_command tar tar || return 1
+        log_error "tar is not installed."
+        return 1
     fi
 
     # Check zip
     if ! command_exists zip; then
-        install_command zip zip || return 1
+        log_error "zip is not installed."
+        return 1
     fi
 
     # Check md5sum (or md5 on macOS)
     if ! command_exists md5sum && ! command_exists md5; then
-        if [[ "$OSTYPE" == "darwin"* ]]; then
-            log_warning "md5sum not found, but md5 is available on macOS"
-        else
-            install_command md5sum coreutils || return 1
-        fi
+        log_error "md5sum or md5 is not installed."
+        return 1
     fi
 
     log_success "All required commands installed"
@@ -242,6 +253,16 @@ build_frontend() {
 
     return 0
 }
+
+update_price() {
+    log_step "Updating price"
+    if ! python3 scripts/updatePrice.py; then
+        log_error "Failed to update price"
+        return 1
+    fi
+    log_success "Price updated"
+}
+
 
 get_go_arch() {
     case "$1" in
@@ -515,6 +536,12 @@ main() {
             exit 1
         fi
 
+        # Update price
+        if ! update_price; then
+            log_error "Failed to update price"
+            exit 1
+        fi
+
         # Build for specified platform
         log_step "Building binary"
 
@@ -540,6 +567,12 @@ main() {
         # Build frontend
         if ! build_frontend; then
             log_error "Failed to build frontend"
+            exit 1
+        fi
+
+        # Update price
+        if ! update_price; then
+            log_error "Failed to update price"
             exit 1
         fi
 

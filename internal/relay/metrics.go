@@ -3,6 +3,8 @@ package relay
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"strings"
 	"time"
 
 	"octopus/internal/model"
@@ -61,7 +63,7 @@ func (m *RelayMetrics) SetInternalRequest(req *transformerModel.InternalLLMReque
 }
 
 // SetInternalResponse 设置内部响应并计算费用
-func (m *RelayMetrics) SetInternalResponse(ctx context.Context, resp *transformerModel.InternalLLMResponse) {
+func (m *RelayMetrics) SetInternalResponse(resp *transformerModel.InternalLLMResponse) {
 	m.InternalResponse = resp
 
 	// 从响应中提取 Usage 并计算费用
@@ -73,36 +75,22 @@ func (m *RelayMetrics) SetInternalResponse(ctx context.Context, resp *transforme
 	m.Stats.InputToken = usage.PromptTokens
 	m.Stats.OutputToken = usage.CompletionTokens
 
-	// 计算费用 - 使用渠道特定的价格
-	modelPrice, err := op.LLMGet(ctx, m.ActualModel, m.ChannelID)
-	if err != nil {
-		// 如果没有找到渠道特定价格，尝试从价格缓存获取默认价格
-		defaultPrice := price.GetLLMPrice(m.ActualModel)
-		if defaultPrice == nil {
-			log.Warnf("No price found for model %s on channel %d", m.ActualModel, m.ChannelID)
-			return
-		}
-		modelPrice = *defaultPrice
+	// 计算费用
+	modelPrice := price.GetLLMPrice(m.ActualModel)
+	if modelPrice == nil {
+		return
 	}
-
-	if usage.PromptTokensDetails != nil && usage.PromptTokensDetails.CachedTokens > 0 {
-		// 安全计算非缓存 token 数量
-		// 某些提供商（如 Anthropic）的 PromptTokens 仅包含非缓存部分
-		// 其他提供商（如 OpenAI）的 PromptTokens 包含总数（缓存 + 非缓存）
-		nonCachedTokens := usage.PromptTokens - usage.PromptTokensDetails.CachedTokens
-
-		// 如果结果为负数，说明 PromptTokens 已经排除了缓存 token
-		// 此时 PromptTokens 直接代表非缓存 token 数量
-		if nonCachedTokens < 0 {
-			nonCachedTokens = usage.PromptTokens
+	if usage.PromptTokensDetails == nil {
+		usage.PromptTokensDetails = &transformerModel.PromptTokensDetails{
+			CachedTokens: 0,
 		}
-
-		// 计算输入成本：缓存成本 + 非缓存成本
+	}
+	if usage.AnthropicUsage {
 		m.Stats.InputCost = (float64(usage.PromptTokensDetails.CachedTokens)*modelPrice.CacheRead +
-			float64(nonCachedTokens)*modelPrice.Input) * 1e-6
+			float64(usage.PromptTokens)*modelPrice.Input +
+			float64(usage.CacheCreationInputTokens)*modelPrice.CacheWrite) * 1e-6
 	} else {
-		// 无缓存详情，所有 token 按非缓存价格计费
-		m.Stats.InputCost = float64(usage.PromptTokens) * modelPrice.Input * 1e-6
+		m.Stats.InputCost = (float64(usage.PromptTokensDetails.CachedTokens)*modelPrice.CacheRead + float64(usage.PromptTokens-usage.PromptTokensDetails.CachedTokens)*modelPrice.Input) * 1e-6
 	}
 	m.Stats.OutputCost = float64(usage.CompletionTokens) * modelPrice.Output * 1e-6
 }
@@ -135,15 +123,9 @@ func (m *RelayMetrics) saveStats(success bool, duration time.Duration) {
 	op.StatsDailyUpdate(context.Background(), m.Stats)
 	op.StatsAPIKeyUpdate(m.APIKeyID, m.Stats)
 
-	// 获取缓存命中的 token 数量
-	var cachedTokens int64
-	if m.InternalResponse != nil && m.InternalResponse.Usage != nil && m.InternalResponse.Usage.PromptTokensDetails != nil {
-		cachedTokens = m.InternalResponse.Usage.PromptTokensDetails.CachedTokens
-	}
-
-	log.Infof("channel: %d, model: %s, success: %t, wait time: %d, input token: %d, cached token: %d, output token: %d, input cost: %f, output cost: %f total cost: %f",
+	log.Infof("channel: %d, model: %s, success: %t, wait time: %d, input token: %d, output token: %d, input cost: %f, output cost: %f total cost: %f",
 		m.ChannelID, m.ActualModel, success, m.Stats.WaitTime,
-		m.Stats.InputToken, cachedTokens, m.Stats.OutputToken,
+		m.Stats.InputToken, m.Stats.OutputToken,
 		m.Stats.InputCost, m.Stats.OutputCost, m.Stats.InputCost+m.Stats.OutputCost)
 }
 
@@ -179,7 +161,16 @@ func (m *RelayMetrics) saveLog(ctx context.Context, err error, duration time.Dur
 
 	// 设置响应内容
 	if m.InternalResponse != nil {
-		if respJSON, jsonErr := json.Marshal(m.InternalResponse); jsonErr == nil {
+		// 创建响应的浅拷贝，过滤掉 images 字段以减少存储压力
+		respForLog := m.filterResponseForLog(m.InternalResponse)
+		if respJSON, jsonErr := json.Marshal(respForLog); jsonErr == nil {
+			// 如果是 Anthropic 响应，补充 cache_creation_input_tokens 字段
+			if m.InternalResponse.Usage != nil && m.InternalResponse.Usage.AnthropicUsage {
+				respStr := string(respJSON)
+				old := `"usage":{`
+				insert := fmt.Sprintf(`"usage":{"cache_creation_input_tokens":%d,`, m.InternalResponse.Usage.CacheCreationInputTokens)
+				respJSON = []byte(strings.Replace(respStr, old, insert, 1))
+			}
 			relayLog.ResponseContent = string(respJSON)
 		}
 	}
@@ -191,5 +182,77 @@ func (m *RelayMetrics) saveLog(ctx context.Context, err error, duration time.Dur
 
 	if logErr := op.RelayLogAdd(ctx, relayLog); logErr != nil {
 		log.Warnf("failed to save relay log: %v", logErr)
+	}
+}
+
+// filterResponseForLog 创建响应的浅拷贝，过滤掉 images 和 MultipleContent 中的图片数据以减少存储压力
+func (m *RelayMetrics) filterResponseForLog(resp *transformerModel.InternalLLMResponse) *transformerModel.InternalLLMResponse {
+	if resp == nil {
+		return nil
+	}
+
+	// 创建浅拷贝
+	filtered := *resp
+	filtered.Choices = make([]transformerModel.Choice, len(resp.Choices))
+
+	for i, choice := range resp.Choices {
+		filtered.Choices[i] = choice
+
+		// 处理 Message
+		if choice.Message != nil {
+			msgCopy := *choice.Message
+			// 清除 Images 字段
+			if len(msgCopy.Images) > 0 {
+				msgCopy.Images = nil
+			}
+			// 过滤 MultipleContent 中的图片数据
+			if len(msgCopy.Content.MultipleContent) > 0 {
+				msgCopy.Content = m.filterMessageContent(msgCopy.Content)
+			}
+			filtered.Choices[i].Message = &msgCopy
+		}
+
+		// 处理 Delta
+		if choice.Delta != nil {
+			deltaCopy := *choice.Delta
+			// 清除 Images 字段
+			if len(deltaCopy.Images) > 0 {
+				deltaCopy.Images = nil
+			}
+			// 过滤 MultipleContent 中的图片数据
+			if len(deltaCopy.Content.MultipleContent) > 0 {
+				deltaCopy.Content = m.filterMessageContent(deltaCopy.Content)
+			}
+			filtered.Choices[i].Delta = &deltaCopy
+		}
+	}
+
+	return &filtered
+}
+
+// filterMessageContent 过滤 MessageContent 中的图片数据
+func (m *RelayMetrics) filterMessageContent(content transformerModel.MessageContent) transformerModel.MessageContent {
+	if len(content.MultipleContent) == 0 {
+		return content
+	}
+
+	filteredParts := make([]transformerModel.MessageContentPart, 0, len(content.MultipleContent))
+	for _, part := range content.MultipleContent {
+		if part.Type == "image_url" && part.ImageURL != nil {
+			// 用占位符替换图片数据
+			filteredParts = append(filteredParts, transformerModel.MessageContentPart{
+				Type: "image_url",
+				ImageURL: &transformerModel.ImageURL{
+					URL: "[image data omitted for storage]",
+				},
+			})
+		} else {
+			filteredParts = append(filteredParts, part)
+		}
+	}
+
+	return transformerModel.MessageContent{
+		Content:         content.Content,
+		MultipleContent: filteredParts,
 	}
 }

@@ -94,7 +94,7 @@ export function SettingInfo() {
                 </div>
                 <div className="flex items-center gap-2">
                     {nowVersionQuery.isLoading ? (
-                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                        <Loader2 className="size-4 animate-spin text-muted-foreground" />
                     ) : (
                         <code className="text-sm font-mono text-muted-foreground">
                             {backendNowVersion || t('info.unknown')}
@@ -111,7 +111,7 @@ export function SettingInfo() {
                 </div>
                 <div className="flex items-center gap-2">
                     {latestInfoQuery.isLoading ? (
-                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                        <Loader2 className="size-4 animate-spin text-muted-foreground" />
                     ) : (
                         <code className="text-sm font-mono text-muted-foreground">
                             {latestVersion || t('info.unknown')}
@@ -141,7 +141,6 @@ export function SettingInfo() {
                             onClick={handleForceRefresh}
                             className="rounded-xl"
                         >
-                            <RefreshCw className="h-4 w-4" />
                             {t('info.forceRefresh')}
                         </Button>
                     </div>
@@ -170,11 +169,6 @@ export function SettingInfo() {
                             disabled={updateCore.isPending}
                             className="rounded-xl"
                         >
-                            {updateCore.isPending ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                                <Download className="h-4 w-4" />
-                            )}
                             {updateCore.isPending ? t('info.updating') : t('info.updateNow')}
                         </Button>
                     </div>

@@ -1,13 +1,14 @@
 'use client';
 
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { Trash2, X, Check, Copy, Pencil } from 'lucide-react';
+import { Trash2, X, Pencil } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { type Group, useDeleteGroup, useUpdateGroup } from '@/api/endpoints/group';
 import { useModelChannelList } from '@/api/endpoints/model';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import { toast } from '@/components/common/Toast';
+import { CopyIconButton } from '@/components/common/CopyButton';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/animate-ui/components/animate/tooltip';
 import type { SelectedMember } from './ItemList';
 import { MemberList } from './ItemList';
@@ -25,6 +26,47 @@ import {
     useMorphingDialog,
 } from '@/components/ui/morphing-dialog';
 
+interface EditDialogContentProps {
+    group: Group;
+    displayMembers: SelectedMember[];
+    isSubmitting: boolean;
+    onSubmit: (values: GroupEditorValues, onDone?: () => void) => void;
+}
+
+function EditDialogContent({ group, displayMembers, isSubmitting, onSubmit }: EditDialogContentProps) {
+    const { setIsOpen } = useMorphingDialog();
+    const t = useTranslations('group');
+    return (
+        <>
+            <MorphingDialogTitle className="shrink-0">
+                <header className="mb-3 flex items-center justify-between">
+                    <h2 className="text-2xl font-bold text-card-foreground">
+                        {t('detail.actions.edit')}
+                    </h2>
+                    <MorphingDialogClose className="relative right-0 top-0" />
+                </header>
+            </MorphingDialogTitle>
+            <MorphingDialogDescription className="flex-1 min-h-0 overflow-hidden">
+                <GroupEditor
+                    key={`edit-group-${group.id}`}
+                    initial={{
+                        name: group.name,
+                        match_regex: group.match_regex ?? '',
+                        mode: group.mode,
+                        first_token_time_out: group.first_token_time_out ?? 0,
+                        members: displayMembers,
+                    }}
+                    submitText={t('detail.actions.save')}
+                    submittingText={t('create.submitting')}
+                    isSubmitting={isSubmitting}
+                    onCancel={() => setIsOpen(false)}
+                    onSubmit={(v) => onSubmit(v, () => setIsOpen(false))}
+                />
+            </MorphingDialogDescription>
+        </>
+    );
+}
+
 export function GroupCard({ group }: { group: Group }) {
     const t = useTranslations('group');
     const updateGroup = useUpdateGroup();
@@ -32,13 +74,19 @@ export function GroupCard({ group }: { group: Group }) {
     const { data: modelChannels = [] } = useModelChannelList();
 
     const [confirmDelete, setConfirmDelete] = useState(false);
-    const [copied, setCopied] = useState(false);
     const [members, setMembers] = useState<SelectedMember[]>([]);
     const isDragging = useRef(false);
     const weightTimerRef = useRef<NodeJS.Timeout | null>(null);
     const membersRef = useRef<SelectedMember[]>([]);
 
     const channelNameByKey = useMemo(() => buildChannelNameByModelKey(modelChannels), [modelChannels]);
+    const enabledByKey = useMemo(() => {
+        const map = new Map<string, boolean>();
+        modelChannels.forEach((mc) => {
+            map.set(modelChannelKey(mc.channel_id, mc.name), mc.enabled);
+        });
+        return map;
+    }, [modelChannels]);
 
     const displayMembers = useMemo((): SelectedMember[] =>
         [...(group.items || [])]
@@ -46,12 +94,13 @@ export function GroupCard({ group }: { group: Group }) {
             .map((item) => ({
                 id: modelChannelKey(item.channel_id, item.model_name),
                 name: item.model_name,
+                enabled: enabledByKey.get(modelChannelKey(item.channel_id, item.model_name)) ?? true,
                 channel_id: item.channel_id,
                 channel_name: channelNameByKey.get(modelChannelKey(item.channel_id, item.model_name)) ?? `Channel ${item.channel_id}`,
                 item_id: item.id,
                 weight: item.weight,
             })),
-        [group.items, channelNameByKey]
+        [group.items, channelNameByKey, enabledByKey]
     );
 
     useEffect(() => {
@@ -120,27 +169,6 @@ export function GroupCard({ group }: { group: Group }) {
         }, 500);
     }, [group.id, priorityByItemId, updateGroup, onSuccess, onError]);
 
-    const handleCopy = async () => {
-        try {
-            if (navigator.clipboard && window.isSecureContext) {
-                await navigator.clipboard.writeText(group.name);
-            } else {
-                const textArea = document.createElement('textarea');
-                textArea.value = group.name;
-                textArea.style.position = 'fixed';
-                textArea.style.left = '-9999px';
-                document.body.appendChild(textArea);
-                textArea.select();
-                document.execCommand('copy');
-                document.body.removeChild(textArea);
-            }
-            setCopied(true);
-            setTimeout(() => setCopied(false), 1500);
-        } catch (err) {
-            console.error('Failed to copy:', err);
-        }
-    };
-
     const handleSubmitEdit = useCallback((values: GroupEditorValues, onDone?: () => void) => {
         if (!group.id) return;
 
@@ -185,10 +213,12 @@ export function GroupCard({ group }: { group: Group }) {
         const payload: GroupUpdateRequest = { id: group.id };
         const nextName = values.name.trim();
         const nextRegex = (values.match_regex ?? '').trim();
+        const nextFirstTokenTimeOut = values.first_token_time_out ?? 0;
 
         if (nextName && nextName !== group.name) payload.name = nextName;
         if (values.mode !== group.mode) payload.mode = values.mode;
         if (nextRegex !== (group.match_regex ?? '')) payload.match_regex = nextRegex;
+        if (nextFirstTokenTimeOut !== (group.first_token_time_out ?? 0)) payload.first_token_time_out = nextFirstTokenTimeOut;
         if (items_to_add.length) payload.items_to_add = items_to_add;
         if (items_to_update.length) payload.items_to_update = items_to_update;
         if (items_to_delete.length) payload.items_to_delete = items_to_delete;
@@ -205,40 +235,7 @@ export function GroupCard({ group }: { group: Group }) {
             },
             onError,
         });
-    }, [group.id, group.items, group.match_regex, group.mode, group.name, onSuccess, onError, updateGroup]);
-
-    function EditDialogContent() {
-        const { setIsOpen } = useMorphingDialog();
-        const t = useTranslations('group');
-        return (
-            <div className="w-screen max-w-full md:max-w-4xl">
-                <MorphingDialogTitle>
-                    <header className="mb-5 flex items-center justify-between">
-                        <h2 className="text-2xl font-bold text-card-foreground">
-                            {t('detail.actions.edit')}
-                        </h2>
-                        <MorphingDialogClose className="relative right-0 top-0" />
-                    </header>
-                </MorphingDialogTitle>
-                <MorphingDialogDescription>
-                    <GroupEditor
-                        key={`edit-group-${group.id}-${group.name}-${group.match_regex}-${group.mode}-${group.items?.length ?? 0}`}
-                        initial={{
-                            name: group.name,
-                            match_regex: group.match_regex ?? '',
-                            mode: group.mode,
-                            members: displayMembers,
-                        }}
-                        submitText={t('detail.actions.save')}
-                        submittingText={t('create.submitting')}
-                        isSubmitting={updateGroup.isPending}
-                        onCancel={() => setIsOpen(false)}
-                        onSubmit={(v) => handleSubmitEdit(v, () => setIsOpen(false))}
-                    />
-                </MorphingDialogDescription>
-            </div>
-        );
-    }
+    }, [group.first_token_time_out, group.id, group.items, group.match_regex, group.mode, group.name, onSuccess, onError, updateGroup]);
 
     return (
         <article className="flex flex-col rounded-3xl border border-border bg-card text-card-foreground p-4 custom-shadow">
@@ -264,21 +261,25 @@ export function GroupCard({ group }: { group: Group }) {
                         </MorphingDialogTrigger>
 
                         <MorphingDialogContainer>
-                            <MorphingDialogContent className="w-fit max-w-full bg-card text-card-foreground px-6 py-4 rounded-3xl custom-shadow max-h-[90vh] overflow-y-auto">
-                                <EditDialogContent />
+                            <MorphingDialogContent className="relative w-screen max-w-full md:max-w-4xl bg-card text-card-foreground px-6 py-4 rounded-3xl custom-shadow h-[calc(100vh-2rem)] flex flex-col overflow-hidden">
+                                <EditDialogContent
+                                    group={group}
+                                    displayMembers={displayMembers}
+                                    isSubmitting={updateGroup.isPending}
+                                    onSubmit={handleSubmitEdit}
+                                />
                             </MorphingDialogContent>
                         </MorphingDialogContainer>
                     </MorphingDialog>
 
                     <Tooltip side="top" sideOffset={10} align="center">
                         <TooltipTrigger>
-                            <button type="button" onClick={handleCopy} className="p-1.5 rounded-lg transition-colors hover:bg-muted text-muted-foreground hover:text-foreground">
-                                <AnimatePresence mode="wait">
-                                    <motion.div key={copied ? 'check' : 'copy'} initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
-                                        {copied ? <Check className="size-4 text-primary" /> : <Copy className="size-4" />}
-                                    </motion.div>
-                                </AnimatePresence>
-                            </button>
+                            <CopyIconButton
+                                text={group.name}
+                                className="p-1.5 rounded-lg transition-colors hover:bg-muted text-muted-foreground hover:text-foreground"
+                                copyIconClassName="size-4"
+                                checkIconClassName="size-4 text-primary"
+                            />
                         </TooltipTrigger>
                         <TooltipContent>{t('detail.actions.copyName')}</TooltipContent>
                     </Tooltip>
@@ -298,10 +299,10 @@ export function GroupCard({ group }: { group: Group }) {
                     {confirmDelete && (
                         <motion.div layoutId={`delete-btn-group-${group.id}`} className="absolute inset-0 flex items-center justify-center gap-2 bg-destructive p-2 rounded-xl" transition={{ type: 'spring', stiffness: 400, damping: 30 }}>
                             <button type="button" onClick={() => setConfirmDelete(false)} className="flex h-7 w-7 items-center justify-center rounded-lg bg-destructive-foreground/20 text-destructive-foreground transition-all hover:bg-destructive-foreground/30 active:scale-95">
-                                <X className="h-4 w-4" />
+                                <X className="size-4" />
                             </button>
                             <button type="button" onClick={() => group.id && deleteGroup.mutate(group.id, { onSuccess: () => toast.success(t('toast.deleted')) })} disabled={deleteGroup.isPending} className="flex-1 h-7 flex items-center justify-center gap-2 rounded-lg bg-destructive-foreground text-destructive text-sm font-semibold transition-all hover:bg-destructive-foreground/90 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed">
-                                <Trash2 className="h-3.5 w-3.5" />
+                                <Trash2 className="size-3.5" />
                                 {t('detail.actions.confirmDelete')}
                             </button>
                         </motion.div>
@@ -333,7 +334,7 @@ export function GroupCard({ group }: { group: Group }) {
                 ))}
             </div>
 
-            <section className="rounded-xl border border-border/50 bg-muted/30 overflow-hidden relative">
+            <section className="rounded-xl border border-border/50 bg-muted/30 overflow-hidden relative h-101">
                 <MemberList
                     members={members}
                     onReorder={setMembers}

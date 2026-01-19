@@ -25,7 +25,7 @@ export type MorphingDialogContextType = {
   isOpen: boolean;
   setIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
   uniqueId: string;
-  triggerRef: React.RefObject<HTMLButtonElement | null>;
+  triggerRef: React.RefObject<HTMLDivElement | null>;
 };
 
 const MorphingDialogContext =
@@ -52,7 +52,7 @@ function MorphingDialogProvider({
 }: MorphingDialogProviderProps) {
   const [isOpen, setIsOpen] = useState(false);
   const uniqueId = useId();
-  const triggerRef = useRef<HTMLButtonElement>(null!);
+  const triggerRef = useRef<HTMLDivElement>(null!);
 
   const contextValue = useMemo(
     () => ({
@@ -85,61 +85,68 @@ function MorphingDialog({ children, transition }: MorphingDialogProps) {
 }
 
 export type MorphingDialogTriggerProps = {
-  triggerRef?: React.RefObject<HTMLButtonElement>;
-  disableMorph?: boolean;
-} & React.ComponentProps<typeof motion.button>;
+  children: React.ReactNode;
+  className?: string;
+  style?: React.CSSProperties;
+  triggerRef?: React.RefObject<HTMLDivElement>;
+};
 
 function MorphingDialogTrigger({
   children,
   className,
   style,
-  triggerRef,
-  disableMorph,
-  onClick,
-  onKeyDown,
-  disabled,
-  ...props
+  triggerRef: triggerRefProp,
 }: MorphingDialogTriggerProps) {
-  const { setIsOpen, isOpen, uniqueId } = useMorphingDialog();
+  const { setIsOpen, isOpen, uniqueId, triggerRef } = useMorphingDialog();
 
-  const handleClick = useCallback(
-    (event: React.MouseEvent<HTMLButtonElement>) => {
-      if (disabled) return;
-      setIsOpen(!isOpen);
-      onClick?.(event);
-    },
-    [disabled, isOpen, onClick, setIsOpen],
-  );
+  const handleClick = useCallback(() => {
+    setIsOpen(!isOpen);
+  }, [isOpen, setIsOpen]);
 
   const handleKeyDown = useCallback(
-    (event: React.KeyboardEvent<HTMLButtonElement>) => {
-      if (disabled) return;
+    (event: React.KeyboardEvent<HTMLDivElement>) => {
       if (event.key === 'Enter' || event.key === ' ') {
         event.preventDefault();
         setIsOpen(!isOpen);
       }
-      onKeyDown?.(event);
     },
-    [disabled, isOpen, onKeyDown, setIsOpen],
+    [isOpen, setIsOpen]
   );
 
+  // Important: when dialog is open, framer-motion shared-layout can temporarily
+  // "flash" the trigger back into its original position during internal re-layouts.
+  // To make this robust, we render a non-motion placeholder (still in layout flow)
+  // instead of the motion trigger while open.
+  if (isOpen) {
+    return (
+      <div
+        ref={triggerRefProp ?? triggerRef}
+        className={cn('relative', className)}
+        style={{ ...style, visibility: 'hidden', pointerEvents: 'none' }}
+        aria-hidden
+      >
+        {children}
+      </div>
+    );
+  }
+
   return (
-    <motion.button
-      ref={triggerRef}
-      layoutId={disableMorph ? undefined : `dialog-${uniqueId}`}
+    <motion.div
+      ref={triggerRefProp ?? triggerRef}
+      layoutId={`dialog-${uniqueId}`}
       className={cn('relative cursor-pointer', className)}
       onClick={handleClick}
       onKeyDown={handleKeyDown}
       style={style}
-      disabled={disabled}
       aria-haspopup='dialog'
       aria-expanded={isOpen}
       aria-controls={`motion-ui-morphing-dialog-content-${uniqueId}`}
       aria-label={`Open dialog ${uniqueId}`}
-      {...props}
+      role='button'
+      tabIndex={0}
     >
       {children}
-    </motion.button>
+    </motion.div>
   );
 }
 
@@ -147,34 +154,22 @@ export type MorphingDialogContentProps = {
   children: React.ReactNode;
   className?: string;
   style?: React.CSSProperties;
-  disableMorph?: boolean;
-  onRequestClose?: () => void;
 };
 
 function MorphingDialogContent({
   children,
   className,
   style,
-  disableMorph,
-  onRequestClose,
 }: MorphingDialogContentProps) {
   const { setIsOpen, isOpen, uniqueId, triggerRef } = useMorphingDialog();
   const containerRef = useRef<HTMLDivElement>(null!);
   const firstFocusableElementRef = useRef<HTMLElement | null>(null);
   const lastFocusableElementRef = useRef<HTMLElement | null>(null);
 
-  const requestClose = useCallback(() => {
-    if (onRequestClose) {
-      onRequestClose();
-      return;
-    }
-    setIsOpen(false);
-  }, [onRequestClose, setIsOpen]);
-
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        requestClose();
+        setIsOpen(false);
       }
       if (event.key === 'Tab') {
         if (!firstFocusableElementRef.current || !lastFocusableElementRef.current) return;
@@ -198,7 +193,7 @@ function MorphingDialogContent({
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [requestClose]);
+  }, [setIsOpen]);
 
   useEffect(() => {
     if (isOpen) {
@@ -221,7 +216,7 @@ function MorphingDialogContent({
     containerRef,
     () => {
       if (isOpen) {
-        requestClose();
+        setIsOpen(false);
       }
     },
     (event) => {
@@ -233,6 +228,13 @@ function MorphingDialogContent({
       if (openSelectContent) {
         return true;
       }
+      if (target?.closest('[data-slot="popover-content"]')) {
+        return true;
+      }
+      const openPopoverContent = document.querySelector('[data-slot="popover-content"]');
+      if (openPopoverContent) {
+        return true;
+      }
       return false;
     }
   );
@@ -240,7 +242,7 @@ function MorphingDialogContent({
   return (
     <motion.div
       ref={containerRef}
-      layoutId={disableMorph ? undefined : `dialog-${uniqueId}`}
+      layoutId={`dialog-${uniqueId}`}
       className={cn('overflow-hidden', className)}
       style={style}
       role='dialog'

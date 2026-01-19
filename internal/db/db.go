@@ -3,7 +3,9 @@ package db
 import (
 	"fmt"
 	"strings"
+	"time"
 
+	"octopus/internal/db/migrate"
 	"octopus/internal/model"
 	"github.com/glebarez/sqlite"
 	"gorm.io/driver/mysql"
@@ -36,9 +38,23 @@ func InitDB(dbType, dsn string, debug bool) error {
 		return err
 	}
 
-	return db.AutoMigrate(
+	sqlDB, err := db.DB()
+	if err != nil {
+		return err
+	}
+
+	sqlDB.SetMaxIdleConns(10)
+	sqlDB.SetMaxOpenConns(100)
+	sqlDB.SetConnMaxLifetime(time.Hour)
+	sqlDB.SetConnMaxIdleTime(10 * time.Minute)
+
+	if err := migrate.BeforeAutoMigrate(db); err != nil {
+		return err
+	}
+	if err := db.AutoMigrate(
 		&model.User{},
 		&model.Channel{},
+		&model.ChannelKey{},
 		&model.Group{},
 		&model.GroupItem{},
 		&model.LLMInfo{},
@@ -51,7 +67,20 @@ func InitDB(dbType, dsn string, debug bool) error {
 		&model.StatsChannel{},
 		&model.StatsAPIKey{},
 		&model.RelayLog{},
-	)
+		&migrate.MigrationRecord{},
+	); err != nil {
+		return err
+	}
+	if err := migrate.AfterAutoMigrate(db); err != nil {
+		return err
+	}
+	// Postgres: schema changes during migrations can invalidate cached prepared plans
+	// (e.g. "cached plan must not change result type"). Clear them.
+	if db.Dialector != nil && db.Dialector.Name() == "postgres" {
+		db.Exec("DEALLOCATE ALL")
+		db.Exec("DISCARD ALL")
+	}
+	return nil
 }
 
 func initSQLite(path string, config *gorm.Config) (*gorm.DB, error) {

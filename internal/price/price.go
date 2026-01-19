@@ -11,6 +11,7 @@ import (
 
 	"octopus/internal/client"
 	"octopus/internal/model"
+	"octopus/internal/op"
 	"octopus/internal/utils/log"
 )
 
@@ -37,7 +38,7 @@ func UpdateLLMPrice(ctx context.Context) error {
 	defer func() {
 		log.Debugf("update LLM price task finished, update time: %s", time.Since(startTime))
 	}()
-	client, err := client.NewHTTPClient(false)
+	client, err := client.GetHTTPClientSystemProxy(false)
 	if err != nil {
 		return err
 	}
@@ -83,7 +84,11 @@ func GetLastUpdateTime() time.Time {
 }
 
 func GetLLMPrice(modelName string) *model.LLMPrice {
-	// 从价格缓存中获取默认价格（用于创建新模型时的初始价格）
+	modelName = strings.ToLower(modelName)
+	price, err := op.LLMGet(modelName)
+	if err == nil {
+		return &price
+	}
 	llmPriceLock.RLock()
 	defer llmPriceLock.RUnlock()
 	price, ok := llmPrice[modelName]

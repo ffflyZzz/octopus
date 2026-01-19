@@ -52,6 +52,13 @@
         "log": "Log",
         "setting": "Setting"
     },
+    "common": {
+        "copy": {
+            "success": "Copied",
+            "failed": "Copy failed",
+            "noContent": "Nothing to copy"
+        }
+    },
     "home": {
         "activity": {
             "requestCount": "Requests",
@@ -177,9 +184,7 @@
                 "updateSuccess": "API key updated",
                 "updateError": "Failed to update API key",
                 "deleteSuccess": "API key deleted",
-                "deleteError": "Failed to delete API key",
-                "copySuccess": "API key copied",
-                "copyError": "Failed to copy API key"
+                "deleteError": "Failed to delete API key"
             }
         },
         "llmPrice": {
@@ -307,6 +312,8 @@
             "matchRegex": "Match Regex",
             "matchRegexPlaceholder": "Leave empty to use default fuzzy match by group name",
             "matchRegexInvalid": "Invalid regex",
+            "firstTokenTimeOut": "First Token Timeout",
+            "firstTokenTimeOutHint": "Unit: seconds, only effective for streaming response, 0 = no limit",
             "items": "Selected Models",
             "addItem": "Add Model",
             "autoAdd": "Auto Add",
@@ -378,12 +385,12 @@
     },
     "channel": {
         "card": {
-            "status": {
-                "enabled": "Enabled",
-                "disabled": "Disabled"
-            },
             "requestCount": "Requests",
-            "totalCost": "Total Cost"
+            "totalCost": "Total Cost",
+            "toast": {
+                "enabled": "Channel enabled",
+                "disabled": "Channel disabled"
+            }
         },
         "detail": {
             "title": {
@@ -393,8 +400,12 @@
             "sections": {
                 "requests": "Request Details",
                 "tokens": "Token Usage",
-                "costs": "Cost Details"
+                "costs": "Cost Details",
+                "baseUrls": "Base URLs",
+                "keys": "Keys"
             },
+            "noBaseUrls": "No Base URLs",
+            "noKeys": "No Keys",
             "metrics": {
                 "totalRequests": "Total Requests",
                 "totalToken": "Total Tokens",
@@ -405,7 +416,7 @@
                 "outputToken": "Output Tokens",
                 "inputCost": "Input Cost",
                 "outputCost": "Output Cost",
-                "avgWaitTime": "Avg Wait Time"
+                "avgWaitTime": "Wait Time"
             },
             "actions": {
                 "edit": "Edit",
@@ -423,15 +434,26 @@
             "submitting": "Creating..."
         },
         "form": {
+            "add": "Add",
             "name": "Channel Name",
             "type": "Channel Type",
-            "baseUrl": "Base URL",
+            "baseUrls": "Base URLs",
+            "baseUrlUrl": "URL",
+            "baseUrlDelay": "Delay(ms)",
+            "advanced": "Advanced Settings",
             "apiKey": "API Key",
+            "customHeader": "Custom Headers",
+            "customHeaderKey": "Header Key",
+            "customHeaderValue": "Header Value",
+            "customHeaderAdd": "Add Header",
+            "channelProxy": "Channel Proxy",
+            "channelProxyPlaceholder": "Optional: proxy for this channel (overrides global proxy)",
+            "paramOverride": "Param Override",
+            "paramOverridePlaceholder": "Optional: JSON string to override request params",
             "model": "Model",
             "enabled": "Enabled",
             "proxy": "Use Proxy",
             "modelCustomPlaceholder": "Custom model name",
-            "modelSearchPlaceholder": "Search or add custom model",
             "modelAdd": "Add",
             "modelRefresh": "Refresh",
             "modelRefreshSuccess": "Models fetched successfully",
@@ -439,18 +461,13 @@
             "modelRefreshEmpty": "No models found",
             "modelSelected": "Selected Models",
             "modelNoSelected": "No models selected",
-            "modelAvailable": "Available Models",
-            "modelSelectAll": "Select All",
             "modelClearAll": "Clear All",
-            "modelAllAdded": "All models added",
-            "modelNoMatch": "No matching models.",
-            "modelAddCustom": "Add as custom",
-            "modelFetching": "Fetching models...",
-            "modelFetchPrompt": "Click to fetch available models",
             "typeOpenAIChat": "OpenAI Chat",
             "typeOpenAIResponse": "OpenAI Response",
+            "typeOpenAIEmbedding": "OpenAI Embedding",
             "typeAnthropic": "Anthropic",
             "typeGemini": "Gemini",
+            "typeVolcengine": "Volcengine",
             "autoSync": "Auto Sync",
             "autoGroup": "Auto Group",
             "autoGroupNone": "None",

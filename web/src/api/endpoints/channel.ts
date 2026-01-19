@@ -3,25 +3,16 @@ import { apiClient } from '../client';
 import { logger } from '@/lib/logger';
 import { formatCount, formatMoney, formatTime } from '@/lib/utils';
 import { StatsChannel, type StatsMetricsFormatted } from './stats';
-
 /**
- * 渠道类型信息
- */
-export interface ChannelTypeInfo {
-    value: number;  // 渠道类型值
-    name: string;   // 渠道类型名称（用于前端标识）
-    label: string;  // 渠道类型显示标签
-}
-
-/**
- * 渠道类型枚举（保留用于向后兼容和类型安全）
+ * 渠道类型枚举
  */
 export enum ChannelType {
     OpenAIChat = 0,
     OpenAIResponse = 1,
     Anthropic = 2,
     Gemini = 3,
-    Antigravity = 4,
+    Volcengine = 4,
+    OpenAIEmbedding = 5,
 }
 
 /**
@@ -34,66 +25,127 @@ export enum AutoGroupType {
     Regex = 3,  // 正则匹配
 }
 
+export type BaseUrl = {
+    url: string;
+    delay: number;
+};
+
+export type CustomHeader = {
+    header_key: string;
+    header_value: string;
+};
+
+export type ChannelKey = {
+    id: number;
+    channel_id: number;
+    enabled: boolean;
+    channel_key: string;
+    status_code: number;
+    last_use_time_stamp: number;
+    total_cost: number;
+};
+
 /**
- * 渠道基础字段（不含 id 和 stats）
+ * 渠道完整数据（与后端 model.Channel 对齐；数组字段在前端保证为 []）
  */
-interface ChannelBase {
+export type Channel = {
+    id: number;
     name: string;
     type: ChannelType;
     enabled: boolean;
-    base_url: string;
-    key: string;
+    base_urls: BaseUrl[];
+    keys: ChannelKey[];
     model: string;
     custom_model: string;
     proxy: boolean;
     auto_sync: boolean;
     auto_group: AutoGroupType;
-}
-
-/**
- * 渠道完整数据
- */
-export interface Channel extends ChannelBase {
-    id: number;
+    custom_header: CustomHeader[];
+    param_override?: string | null;
+    channel_proxy?: string | null;
     stats: StatsChannel;
-}
+};
 
-export interface ChannelData {
-    raw: Channel;
-    formatted: StatsMetricsFormatted;
-}
+// Internal type: backend may return null for slice fields; normalize to [] in select()
+type ChannelServer = Omit<Channel, 'base_urls' | 'custom_header' | 'keys'> & {
+    base_urls: BaseUrl[] | null;
+    custom_header: CustomHeader[] | null;
+    keys: ChannelKey[] | null;
+};
 
 /**
  * 创建渠道请求：必填字段 + 可选字段
  */
-export type CreateChannelRequest =
-    Pick<ChannelBase, 'name' | 'type' | 'base_url' | 'key' | 'model'> &
-    Partial<Pick<ChannelBase, 'enabled' | 'custom_model' | 'proxy' | 'auto_sync' | 'auto_group'>>;
+export type CreateChannelRequest = {
+    name: string;
+    type: ChannelType;
+    enabled?: boolean;
+    base_urls: BaseUrl[];
+    keys: Array<Pick<ChannelKey, 'enabled' | 'channel_key'>>;
+    model: string;
+    custom_model?: string;
+    proxy?: boolean;
+    auto_sync?: boolean;
+    auto_group?: AutoGroupType;
+    custom_header?: CustomHeader[];
+    channel_proxy?: string | null;
+    param_override?: string | null;
+};
 
 /**
- * 更新渠道请求：id + 所有基础字段
+ * 更新渠道请求：id + 可选字段 + keys diff
  */
-export type UpdateChannelRequest = Pick<Channel, 'id'> & ChannelBase;
+export type UpdateChannelRequest = {
+    id: number;
+    name?: string;
+    type?: ChannelType;
+    enabled?: boolean;
+    base_urls?: BaseUrl[];
+    model?: string;
+    custom_model?: string;
+    proxy?: boolean;
+    auto_sync?: boolean;
+    auto_group?: AutoGroupType;
+    custom_header?: CustomHeader[];
+    channel_proxy?: string | null;
+    param_override?: string | null;
+    // keys diff
+    keys_to_add?: Array<Pick<ChannelKey, 'enabled' | 'channel_key'>>;
+    keys_to_update?: Array<{ id: number; enabled?: boolean; channel_key?: string }>;
+    keys_to_delete?: number[];
+};
+
+export type FetchModelRequest = {
+    type: ChannelType;
+    base_urls: BaseUrl[];
+    keys: Array<Pick<ChannelKey, 'enabled' | 'channel_key'>>;
+    proxy?: boolean;
+};
 
 /**
  * 获取渠道列表 Hook
- *
+ * 
  * @example
  * const { data: channels, isLoading, error } = useChannelList();
- *
+ * 
  * if (isLoading) return <Loading />;
  * if (error) return <Error message={error.message} />;
- *
+ * 
  * channels?.forEach(channel => console.log(channel.raw.name));
  */
 export function useChannelList() {
     return useQuery({
         queryKey: ['channels', 'list'],
         queryFn: async () => {
-            return apiClient.get<Channel[]>('/api/v1/channel/list');
+            return apiClient.get<ChannelServer[]>('/api/v1/channel/list');
         },
-        select: (data) => data.map((item): ChannelData => ({
-            raw: item,
+        select: (data) => data.map((item) => ({
+            raw: ({
+                ...item,
+                base_urls: item.base_urls ?? [],
+                custom_header: item.custom_header ?? [],
+                keys: item.keys ?? [],
+            }) satisfies Channel,
             formatted: {
                 input_token: formatCount(item.stats.input_token),
                 output_token: formatCount(item.stats.output_token),
@@ -106,27 +158,9 @@ export function useChannelList() {
                 request_count: formatCount(item.stats.request_success + item.stats.request_failed),
                 wait_time: formatTime(item.stats.wait_time),
             }
-        })),
+        })) as Array<{ raw: Channel; formatted: StatsMetricsFormatted }>,
         refetchInterval: 30000,
         refetchOnMount: 'always',
-    });
-}
-
-/**
- * 获取渠道类型列表 Hook
- *
- * @example
- * const { data: channelTypes } = useChannelTypes();
- *
- * channelTypes?.forEach(type => console.log(type.label));
- */
-export function useChannelTypes() {
-    return useQuery({
-        queryKey: ['channels', 'types'],
-        queryFn: async () => {
-            return apiClient.get<ChannelTypeInfo[]>('/api/v1/channel/types');
-        },
-        staleTime: Infinity, // 渠道类型很少变化，永久缓存
     });
 }
 
@@ -139,8 +173,8 @@ export function useChannelTypes() {
  * createChannel.mutate({
  *   name: 'OpenAI',
  *   type: ChannelType.OpenAIChat,
- *   base_url: 'https://api.openai.com',
- *   key: 'sk-xxx',
+ *   base_urls: [{ url: 'https://api.openai.com', delay: 0 }],
+ *   keys: [{ enabled: true, channel_key: 'sk-xxx' }],
  *   model: 'gpt-4',
  * });
  */
@@ -149,7 +183,7 @@ export function useCreateChannel() {
 
     return useMutation({
         mutationFn: async (data: CreateChannelRequest) => {
-            return apiClient.post<Channel>('/api/v1/channel/create', data);
+            return apiClient.post<ChannelServer>('/api/v1/channel/create', data);
         },
         onSuccess: (data) => {
             logger.log('渠道创建成功:', data);
@@ -174,8 +208,8 @@ export function useCreateChannel() {
  *   name: 'OpenAI Updated',
  *   type: ChannelType.OpenAIChat,
  *   enabled: true,
- *   base_url: 'https://api.openai.com',
- *   key: 'sk-xxx',
+ *   base_urls: [{ url: 'https://api.openai.com', delay: 0 }],
+ *   keys_to_add: [{ enabled: true, channel_key: 'sk-xxx' }],
  *   model: 'gpt-4-turbo',
  *   proxy: false,
  * });
@@ -185,7 +219,7 @@ export function useUpdateChannel() {
 
     return useMutation({
         mutationFn: async (data: UpdateChannelRequest) => {
-            return apiClient.post<Channel>('/api/v1/channel/update', data);
+            return apiClient.post<ChannelServer>('/api/v1/channel/update', data);
         },
         onSuccess: (data) => {
             logger.log('渠道更新成功:', data);
@@ -225,17 +259,41 @@ export function useDeleteChannel() {
 }
 
 /**
+ * 启用/禁用渠道 Hook
+ * 
+ * @example
+ * const enableChannel = useEnableChannel();
+ * 
+ * enableChannel.mutate({ id: 1, enabled: true }); // 启用 ID 为 1 的渠道
+ * enableChannel.mutate({ id: 1, enabled: false }); // 禁用 ID 为 1 的渠道
+ */
+export function useEnableChannel() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (data: { id: number; enabled: boolean }) => {
+            return apiClient.post<null>('/api/v1/channel/enable', data);
+        },
+        onSuccess: () => {
+            logger.log('渠道状态更新成功');
+            queryClient.invalidateQueries({ queryKey: ['channels', 'list'] });
+        },
+        onError: (error) => {
+            logger.error('渠道状态更新失败:', error);
+        },
+    });
+}
+
+/**
  * 获取渠道模型列表 Hook
  * 
  * @example
  * const fetchModel = useFetchModel();
  * 
  * fetchModel.mutate({
- *   name: 'OpenAI',
  *   type: ChannelType.OpenAIChat,
- *   base_url: 'https://api.openai.com',
- *   key: 'sk-xxx',
- *   model: '',
+ *   base_urls: [{ url: 'https://api.openai.com', delay: 0 }],
+ *   keys: [{ enabled: true, channel_key: 'sk-xxx' }],
  *   proxy: false,
  * });
  * 
@@ -244,7 +302,7 @@ export function useDeleteChannel() {
  */
 export function useFetchModel() {
     return useMutation({
-        mutationFn: async (data: CreateChannelRequest) => {
+        mutationFn: async (data: FetchModelRequest) => {
             return apiClient.post<string[]>('/api/v1/channel/fetch-model', data);
         },
         onSuccess: (data) => {

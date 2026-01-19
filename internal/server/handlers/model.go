@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"net/http"
-	"strconv"
 	"strings"
 
 	"octopus/internal/model"
@@ -115,24 +114,7 @@ func getModelList(c *gin.Context) {
 }
 
 func listLLM(c *gin.Context) {
-	channelIDStr := c.Query("channel_id")
-
-	var models []model.LLMInfo
-	var err error
-
-	if channelIDStr != "" {
-		// 按渠道过滤
-		channelID, parseErr := strconv.Atoi(channelIDStr)
-		if parseErr != nil {
-			resp.Error(c, http.StatusBadRequest, "invalid channel_id")
-			return
-		}
-		models, err = op.LLMListByChannel(c.Request.Context(), channelID)
-	} else {
-		// 获取所有模型
-		models, err = op.LLMList(c.Request.Context())
-	}
-
+	models, err := op.LLMList(c.Request.Context())
 	if err != nil {
 		resp.Error(c, http.StatusInternalServerError, err.Error())
 		return
@@ -185,21 +167,14 @@ func updateLLM(c *gin.Context) {
 
 func deleteLLM(c *gin.Context) {
 	var req struct {
-		Name      string `json:"name" binding:"required"`
-		ChannelID int    `json:"channel_id"`
+		Name string `json:"name" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		resp.Error(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	// 兼容性处理：如果没有提供 channel_id，返回明确的错误信息
-	if req.ChannelID == 0 {
-		resp.Error(c, http.StatusBadRequest, "channel_id is required. This is a breaking change from previous versions. Please update your client to include channel_id in delete requests.")
-		return
-	}
-
-	if err := op.LLMDelete(req.Name, req.ChannelID, c.Request.Context()); err != nil {
+	if err := op.LLMDelete(req.Name, c.Request.Context()); err != nil {
 		resp.Error(c, http.StatusInternalServerError, err.Error())
 		return
 	}
