@@ -73,6 +73,10 @@ func (m *RelayMetrics) SetInternalResponse(resp *transformerModel.InternalLLMRes
 
 	usage := resp.Usage
 	m.Stats.InputToken = usage.PromptTokens
+	// 如果使用了缓存，需要加上缓存命中的 token 数量
+	if usage.PromptTokensDetails != nil && usage.PromptTokensDetails.CachedTokens > 0 {
+		m.Stats.InputToken += usage.PromptTokensDetails.CachedTokens
+	}
 	m.Stats.OutputToken = usage.CompletionTokens
 
 	// 计算费用 - 使用渠道特定的价格
@@ -154,8 +158,14 @@ func (m *RelayMetrics) saveLog(ctx context.Context, err error, duration time.Dur
 
 	// 设置 Usage 信息
 	if m.InternalResponse != nil && m.InternalResponse.Usage != nil {
-		relayLog.InputTokens = int(m.InternalResponse.Usage.PromptTokens)
-		relayLog.OutputTokens = int(m.InternalResponse.Usage.CompletionTokens)
+		usage := m.InternalResponse.Usage
+		inputTokens := usage.PromptTokens
+		// 如果使用了缓存，需要加上缓存命中的 token 数量
+		if usage.PromptTokensDetails != nil && usage.PromptTokensDetails.CachedTokens > 0 {
+			inputTokens += usage.PromptTokensDetails.CachedTokens
+		}
+		relayLog.InputTokens = int(inputTokens)
+		relayLog.OutputTokens = int(usage.CompletionTokens)
 		relayLog.Cost = m.Stats.InputCost + m.Stats.OutputCost
 	}
 

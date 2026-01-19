@@ -282,14 +282,22 @@ func (rc *relayContext) handleStreamResponse(ctx context.Context, response *http
 		err  error
 	}
 	results := make(chan sseReadResult, 1)
+	hasReceivedData := false
 	go func() {
 		defer close(results)
 		readCfg := &sse.ReadConfig{MaxEventSize: maxSSEEventSize}
 		for ev, err := range sse.Read(response.Body, readCfg) {
 			if err != nil {
+				// 如果已经接收到数据，且错误是由于流不完整导致的，
+				// 说明上游提前关闭了连接但已传输部分数据，视为正常结束
+				if hasReceivedData && isIncompleteStreamError(err) {
+					log.Infof("stream ended with incomplete SSE event (already received data), treating as normal completion: %v", err)
+					return
+				}
 				results <- sseReadResult{err: err}
 				return
 			}
+			hasReceivedData = true
 			results <- sseReadResult{data: ev.Data}
 		}
 	}()
@@ -406,4 +414,18 @@ func (rc *relayContext) collectResponse() {
 
 	// 设置响应内容
 	rc.metrics.SetInternalResponse(internalResponse)
+}
+
+// isIncompleteStreamError 判断错误是否是由于 SSE 流不完整导致的
+// 这些错误通常发生在上游服务器提前关闭连接时
+func isIncompleteStreamError(err error) bool {
+	if err == nil {
+		return false
+	}
+	errStr := err.Error()
+	// go-sse 库在解析不完整的 SSE 事件时返回的错误
+	return strings.Contains(errStr, "unexpected end of input") ||
+		strings.Contains(errStr, "unexpected EOF") ||
+		err == io.EOF ||
+		err == io.ErrUnexpectedEOF
 }
