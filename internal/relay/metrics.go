@@ -93,8 +93,14 @@ func (m *RelayMetrics) SetInternalResponse(resp *transformerModel.InternalLLMRes
 		}
 	}
 	if usage.AnthropicUsage {
-		m.Stats.InputCost = (float64(usage.PromptTokensDetails.CachedTokens)*modelPrice.CacheRead +
-			float64(usage.PromptTokens)*modelPrice.Input +
+		// Anthropic Usage 结构:
+		// - PromptTokens = InputTokens + CacheReadInputTokens（总输入）
+		// - CachedTokens = CacheReadInputTokens（缓存读取）
+		// - CacheCreationInputTokens（缓存写入）
+		// 需要分离出未缓存的正常输入 token
+		normalInputTokens := usage.PromptTokens - usage.PromptTokensDetails.CachedTokens - usage.CacheCreationInputTokens
+		m.Stats.InputCost = (float64(normalInputTokens)*modelPrice.Input +
+			float64(usage.PromptTokensDetails.CachedTokens)*modelPrice.CacheRead +
 			float64(usage.CacheCreationInputTokens)*modelPrice.CacheWrite) * 1e-6
 	} else {
 		m.Stats.InputCost = (float64(usage.PromptTokensDetails.CachedTokens)*modelPrice.CacheRead + float64(usage.PromptTokens-usage.PromptTokensDetails.CachedTokens)*modelPrice.Input) * 1e-6
