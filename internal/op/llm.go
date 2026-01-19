@@ -3,7 +3,6 @@ package op
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"octopus/internal/db"
 	"octopus/internal/model"
@@ -13,104 +12,93 @@ import (
 var llmModelCache = cache.New[string, model.LLMPrice](16)
 
 func LLMList(ctx context.Context) ([]model.LLMInfo, error) {
-	models := make([]model.LLMInfo, 0, llmModelCache.Len())
-	for m, cost := range llmModelCache.GetAll() {
-		models = append(models, model.LLMInfo{
-			Name:     m,
-			LLMPrice: cost,
-		})
+	models := []model.LLMInfo{}
+	if err := db.GetDB().WithContext(ctx).Find(&models).Error; err != nil {
+		return nil, err
+	}
+	return models, nil
+}
+
+func LLMListByChannel(ctx context.Context, channelID int) ([]model.LLMInfo, error) {
+	models := []model.LLMInfo{}
+	if err := db.GetDB().WithContext(ctx).Where("channel_id = ?", channelID).Find(&models).Error; err != nil {
+		return nil, err
 	}
 	return models, nil
 }
 
 func LLMUpdate(model model.LLMInfo, ctx context.Context) error {
-	_, ok := llmModelCache.Get(model.Name)
-	if !ok {
-		return fmt.Errorf("model not found")
-	}
-	if err := db.GetDB().WithContext(ctx).Save(model).Error; err != nil {
+	if err := db.GetDB().WithContext(ctx).Save(&model).Error; err != nil {
 		return err
 	}
-	llmModelCache.Set(model.Name, model.LLMPrice)
+	cacheKey := fmt.Sprintf("%s:%d", model.Name, model.ChannelID)
+	llmModelCache.Set(cacheKey, model.LLMPrice)
 	return nil
 }
 
-func LLMDelete(modelName string, ctx context.Context) error {
-	_, ok := llmModelCache.Get(modelName)
-	if !ok {
-		return fmt.Errorf("model not found")
-	}
-	if err := db.GetDB().WithContext(ctx).Delete(&model.LLMInfo{Name: modelName}).Error; err != nil {
+func LLMDelete(modelName string, channelID int, ctx context.Context) error {
+	if err := db.GetDB().WithContext(ctx).Where("name = ? AND channel_id = ?", modelName, channelID).Delete(&model.LLMInfo{}).Error; err != nil {
 		return err
 	}
-	llmModelCache.Del(modelName)
+	// 清除该模型的缓存 (格式: "modelName:channelID")
+	cacheKey := fmt.Sprintf("%s:%d", modelName, channelID)
+	llmModelCache.Del(cacheKey)
 	return nil
 }
-func LLMBatchDelete(modelNames []string, ctx context.Context) error {
-	if len(modelNames) == 0 {
-		return nil
-	}
-	if err := db.GetDB().WithContext(ctx).Where("name IN ?", modelNames).Delete(&model.LLMInfo{}).Error; err != nil {
+
+func LLMCreate(m model.LLMInfo, ctx context.Context) error {
+	if err := db.GetDB().WithContext(ctx).Create(&m).Error; err != nil {
 		return err
 	}
-	llmModelCache.Del(modelNames...)
+	cacheKey := fmt.Sprintf("%s:%d", m.Name, m.ChannelID)
+	llmModelCache.Set(cacheKey, m.LLMPrice)
 	return nil
 }
-func LLMCreate(model model.LLMInfo, ctx context.Context) error {
-	model.Name = strings.ToLower(model.Name)
-	_, ok := llmModelCache.Get(model.Name)
+
+func LLMGet(name string, channelID int) (model.LLMPrice, error) {
+	// 尝试从缓存获取指定渠道的价格
+	cacheKey := fmt.Sprintf("%s:%d", name, channelID)
+	price, ok := llmModelCache.Get(cacheKey)
 	if ok {
-		return fmt.Errorf("model already exists")
+		return price, nil
 	}
-	if err := db.GetDB().WithContext(ctx).Create(&model).Error; err != nil {
-		return err
-	}
-	llmModelCache.Set(model.Name, model.LLMPrice)
-	return nil
-}
-func LLMBatchCreate(llmInfos []model.LLMInfo, ctx context.Context) error {
-	if len(llmInfos) == 0 {
-		return nil
-	}
-	seen := make(map[string]struct{}, len(llmInfos))
-	newLLMInfos := make([]model.LLMInfo, 0, len(llmInfos))
-	for _, llmInfo := range llmInfos {
-		llmInfo.Name = strings.ToLower(llmInfo.Name)
-		if _, ok := seen[llmInfo.Name]; ok {
-			continue
-		}
-		if _, ok := llmModelCache.Get(llmInfo.Name); ok {
-			continue
-		}
-		seen[llmInfo.Name] = struct{}{}
-		newLLMInfos = append(newLLMInfos, llmInfo)
-	}
-	if len(newLLMInfos) == 0 {
-		return nil
-	}
-	if err := db.GetDB().WithContext(ctx).Create(&newLLMInfos).Error; err != nil {
-		return err
-	}
-	for _, llmInfo := range newLLMInfos {
-		llmModelCache.Set(llmInfo.Name, llmInfo.LLMPrice)
-	}
-	return nil
-}
-func LLMGet(name string) (model.LLMPrice, error) {
-	price, ok := llmModelCache.Get(name)
-	if !ok {
+
+	// 从数据库查询
+	var m model.LLMInfo
+	if err := db.GetDB().Where("name = ? AND channel_id = ?", name, channelID).First(&m).Error; err != nil {
 		return model.LLMPrice{}, fmt.Errorf("model not found")
 	}
-	return price, nil
+	llmModelCache.Set(cacheKey, m.LLMPrice)
+	return m.LLMPrice, nil
 }
 
-func llmRefreshCache(ctx context.Context) error {
+// LLMRefreshCache 从数据库刷新 LLM 价格缓存，确保缓存与数据库完全同步
+// 导出此函数以便外部调用（如定期刷新任务）
+func LLMRefreshCache(ctx context.Context) error {
 	models := []model.LLMInfo{}
 	if err := db.GetDB().WithContext(ctx).Find(&models).Error; err != nil {
 		return err
 	}
-	for _, model := range models {
-		llmModelCache.Set(model.Name, model.LLMPrice)
+
+	// 构建数据库中存在的键集合
+	dbKeys := make(map[string]bool)
+	for _, m := range models {
+		cacheKey := fmt.Sprintf("%s:%d", m.Name, m.ChannelID)
+		dbKeys[cacheKey] = true
+		llmModelCache.Set(cacheKey, m.LLMPrice)
 	}
+
+	// 删除缓存中存在但数据库中不存在的键
+	for key := range llmModelCache.GetAll() {
+		if !dbKeys[key] {
+			llmModelCache.Del(key)
+		}
+	}
+
 	return nil
+}
+
+// llmRefreshCache 内部使用的缓存刷新函数（向后兼容）
+func llmRefreshCache(ctx context.Context) error {
+	return LLMRefreshCache(ctx)
 }

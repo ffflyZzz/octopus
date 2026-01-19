@@ -84,11 +84,7 @@ func GetLastUpdateTime() time.Time {
 }
 
 func GetLLMPrice(modelName string) *model.LLMPrice {
-	modelName = strings.ToLower(modelName)
-	price, err := op.LLMGet(modelName)
-	if err == nil {
-		return &price
-	}
+	// 从价格缓存中获取默认价格（用于创建新模型时的初始价格）
 	llmPriceLock.RLock()
 	defer llmPriceLock.RUnlock()
 	price, ok := llmPrice[modelName]

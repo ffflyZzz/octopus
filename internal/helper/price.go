@@ -8,9 +8,8 @@ import (
 	"octopus/internal/price"
 )
 
-func LLMPriceAddToDB(modelNames []string, ctx context.Context) error {
+func LLMPriceAddToDB(modelNames []string, channelID int, ctx context.Context) error {
 	newLLMInfos := make([]model.LLMInfo, 0, len(modelNames))
-	newLLMNames := make([]string, 0, len(modelNames))
 	for _, modelName := range modelNames {
 		if modelName == "" {
 			continue
@@ -18,21 +17,27 @@ func LLMPriceAddToDB(modelNames []string, ctx context.Context) error {
 		modelPrice := price.GetLLMPrice(modelName)
 		if modelPrice != nil {
 			newLLMInfos = append(newLLMInfos, model.LLMInfo{
-				Name:     modelName,
-				LLMPrice: *modelPrice,
+				Name:      modelName,
+				ChannelID: channelID,
+				LLMPrice:  *modelPrice,
 			})
 		} else {
-			newLLMInfos = append(newLLMInfos, model.LLMInfo{Name: modelName})
+			newLLMInfos = append(newLLMInfos, model.LLMInfo{
+				Name:      modelName,
+				ChannelID: channelID,
+			})
 		}
-		newLLMNames = append(newLLMNames, modelName)
 	}
 	if len(newLLMInfos) > 0 {
-		return op.LLMBatchCreate(newLLMInfos, ctx)
+		// 批量创建，忽略已存在的记录
+		for _, llmInfo := range newLLMInfos {
+			_ = op.LLMCreate(llmInfo, ctx) // 忽略错误，因为可能已存在
+		}
 	}
 	return nil
 }
 
-func LLMPriceDeleteFromDBWithNoPrice(modelNames []string, ctx context.Context) error {
+func LLMPriceDeleteFromDBWithNoPrice(modelNames []string, channelID int, ctx context.Context) error {
 	if len(modelNames) == 0 {
 		return nil
 	}
@@ -41,17 +46,19 @@ func LLMPriceDeleteFromDBWithNoPrice(modelNames []string, ctx context.Context) e
 		if modelName == "" {
 			continue
 		}
-		modelPrice, err := op.LLMGet(modelName)
+		modelPrice, err := op.LLMGet(modelName, channelID)
 		if err != nil {
-			return err
+			// 如果没找到，跳过
+			continue
 		}
 		if modelPrice.Input != 0 || modelPrice.Output != 0 || modelPrice.CacheRead != 0 || modelPrice.CacheWrite != 0 {
 			continue
 		}
 		needDeleteModelNames = append(needDeleteModelNames, modelName)
 	}
-	if len(needDeleteModelNames) > 0 {
-		return op.LLMBatchDelete(needDeleteModelNames, ctx)
+	// 删除指定渠道的模型
+	for _, modelName := range needDeleteModelNames {
+		_ = op.LLMDelete(modelName, channelID, ctx) // 忽略错误
 	}
 	return nil
 }

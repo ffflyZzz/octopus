@@ -82,6 +82,10 @@ func SyncModelsTask() {
 			helper.ChannelAutoGroup(&channel, ctx)
 		}
 	}
+
+	// TODO: 在新架构中，模型绑定到渠道，全局模型同步逻辑需要重新设计
+	// 暂时注释掉全局模型价格同步逻辑
+	/*
 	llmPrice, err := op.LLMList(ctx)
 	if err != nil {
 		log.Errorf("failed to list models price: %v", err)
@@ -94,15 +98,16 @@ func SyncModelsTask() {
 
 	deletedNorm, addedNorm := diff.Diff(llmPriceNames, totalNewModels)
 	if len(deletedNorm) > 0 {
-		if err := helper.LLMPriceDeleteFromDBWithNoPrice(deletedNorm, ctx); err != nil {
+		if err := helper.LLMPriceDeleteFromDBWithNoPrice(deletedNorm, 0, ctx); err != nil {
 			log.Errorf("failed to batch delete models price: %v", err)
 		}
 	}
 	if len(addedNorm) > 0 {
-		if err := helper.LLMPriceAddToDB(addedNorm, ctx); err != nil {
+		if err := helper.LLMPriceAddToDB(addedNorm, 0, ctx); err != nil {
 			log.Errorf("failed to add models price: %v", err)
 		}
 	}
+	*/
 	lastSyncModelsTime = time.Now()
 }
 
