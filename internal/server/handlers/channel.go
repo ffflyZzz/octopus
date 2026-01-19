@@ -112,7 +112,7 @@ func updateChannel(c *gin.Context) {
 		defer cancel()
 		modelStr := channel.Model + "," + channel.CustomModel
 		modelArray := strings.Split(modelStr, ",")
-		helper.LLMPriceAddToDB(modelArray, ctx)
+		helper.LLMPriceAddToDB(modelArray, channel.ID, ctx)
 		helper.ChannelBaseUrlDelayUpdate(channel, ctx)
 		helper.ChannelAutoGroup(channel, ctx)
 	}(channel)
