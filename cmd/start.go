@@ -21,7 +21,16 @@ var startCmd = &cobra.Command{
 		conf.PrintBanner()
 		conf.Load(cfgFile)
 		log.SetLevel(conf.AppConfig.Log.Level)
-		middleware.InitRateLimit(conf.AppConfig.RateLimit.MaxConcurrentRequests)
+		middleware.InitRateLimit(
+			conf.AppConfig.RateLimit.MaxConcurrentRequests,
+			conf.AppConfig.RateLimit.FastMaxConcurrent,
+			conf.AppConfig.RateLimit.SlowMaxConcurrent,
+			conf.AppConfig.RateLimit.MigrateAfterSeconds,
+			conf.AppConfig.RateLimit.RateLimitPerSecond,
+			conf.AppConfig.RateLimit.RateLimitBurst,
+			conf.AppConfig.RateLimit.MaxQueueSize,
+			conf.AppConfig.RateLimit.MaxQueueWaitSeconds,
+		)
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		shutdown.Init(log.Logger)

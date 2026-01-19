@@ -31,7 +31,14 @@ type AmpCode struct {
 }
 
 type RateLimit struct {
-	MaxConcurrentRequests int `mapstructure:"max_concurrent_requests"` // 最大并发请求数，0=不限制
+	MaxConcurrentRequests int `mapstructure:"max_concurrent_requests"` // 兼容旧配置
+	FastMaxConcurrent     int `mapstructure:"fast_max_concurrent"`     // 快池并发
+	SlowMaxConcurrent     int `mapstructure:"slow_max_concurrent"`     // 慢池并发
+	MigrateAfterSeconds   int `mapstructure:"migrate_after_seconds"`   // 快池转慢池阈值
+	RateLimitPerSecond    int `mapstructure:"rate_limit_per_second"`   // 每秒新请求数
+	RateLimitBurst        int `mapstructure:"rate_limit_burst"`        // 速率突发容量
+	MaxQueueSize          int `mapstructure:"max_queue_size"`          // 排队上限
+	MaxQueueWaitSeconds   int `mapstructure:"max_queue_wait_seconds"`  // 最大排队时间
 }
 
 type Config struct {
@@ -93,4 +100,11 @@ func setDefaults() {
 	viper.SetDefault("ampcode.restrict_management_to_localhost", false)
 	// RateLimit defaults
 	viper.SetDefault("ratelimit.max_concurrent_requests", 0) // 默认不限制并发
+	viper.SetDefault("ratelimit.fast_max_concurrent", 0)
+	viper.SetDefault("ratelimit.slow_max_concurrent", 0)
+	viper.SetDefault("ratelimit.migrate_after_seconds", 10)
+	viper.SetDefault("ratelimit.rate_limit_per_second", 0)
+	viper.SetDefault("ratelimit.rate_limit_burst", 0)
+	viper.SetDefault("ratelimit.max_queue_size", 1000)
+	viper.SetDefault("ratelimit.max_queue_wait_seconds", 120)
 }
