@@ -80,3 +80,7 @@ func (i *EmbeddingInbound) TransformStream(ctx context.Context, stream *model.In
 func (i *EmbeddingInbound) GetInternalResponse(ctx context.Context) (*model.InternalLLMResponse, error) {
 	return i.storedResponse, nil
 }
+
+func (i *EmbeddingInbound) GetInputTokens() int64 {
+	return 0
+}

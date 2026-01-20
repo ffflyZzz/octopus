@@ -75,16 +75,36 @@ func (m *RelayMetrics) SetInternalResponse(resp *transformerModel.InternalLLMRes
 	m.Stats.InputToken = usage.PromptTokens
 	m.Stats.OutputToken = usage.CompletionTokens
 
-	// 计算费用 - 使用渠道特定的价格
+	// 计算费用 - 优先使用渠道特定价格；若未配置且输入或输出为 0 则回退到默认价格
 	modelPrice, err := op.LLMGet(m.ActualModel, m.ChannelID)
+	defaultPrice := price.GetLLMPrice(m.ActualModel)
 	if err != nil {
-		// 如果没有找到渠道特定价格，尝试从价格缓存获取默认价格
-		defaultPrice := price.GetLLMPrice(m.ActualModel)
 		if defaultPrice == nil {
 			log.Warnf("No price found for model %s on channel %d", m.ActualModel, m.ChannelID)
 			return
 		}
 		modelPrice = *defaultPrice
+	} else if modelPrice.Input == 0 && modelPrice.Output == 0 && modelPrice.CacheRead == 0 && modelPrice.CacheWrite == 0 && defaultPrice == nil {
+		log.Warnf("No price found for model %s on channel %d", m.ActualModel, m.ChannelID)
+		return
+	} else if defaultPrice != nil {
+		if modelPrice.Input == 0 {
+			modelPrice.Input = defaultPrice.Input
+		}
+		if modelPrice.Output == 0 {
+			modelPrice.Output = defaultPrice.Output
+		}
+		if modelPrice.CacheRead == 0 {
+			modelPrice.CacheRead = defaultPrice.CacheRead
+		}
+		if modelPrice.CacheWrite == 0 {
+			modelPrice.CacheWrite = defaultPrice.CacheWrite
+		}
+	}
+
+	if modelPrice.Input == 0 && modelPrice.Output == 0 && modelPrice.CacheRead == 0 && modelPrice.CacheWrite == 0 {
+		log.Warnf("No price found for model %s on channel %d", m.ActualModel, m.ChannelID)
+		return
 	}
 
 	if usage.PromptTokensDetails == nil {
@@ -136,10 +156,33 @@ func (m *RelayMetrics) saveStats(success bool, duration time.Duration) {
 	op.StatsDailyUpdate(context.Background(), m.Stats)
 	op.StatsAPIKeyUpdate(m.APIKeyID, m.Stats)
 
-	log.Infof("channel: %d, model: %s, success: %t, wait time: %d, input token: %d, output token: %d, input cost: %f, output cost: %f total cost: %f",
+	log.Infof("channel: %d, model: %s, success: %t, wait time: %d, input token: %d, output token: %d, input cost: %f, output cost: %f total cost: %f, cache_read: %d, cache_write: %d, normal: %d",
 		m.ChannelID, m.ActualModel, success, m.Stats.WaitTime,
 		m.Stats.InputToken, m.Stats.OutputToken,
-		m.Stats.InputCost, m.Stats.OutputCost, m.Stats.InputCost+m.Stats.OutputCost)
+		m.Stats.InputCost, m.Stats.OutputCost, m.Stats.InputCost+m.Stats.OutputCost,
+		func() int64 {
+			if m.InternalResponse != nil && m.InternalResponse.Usage != nil && m.InternalResponse.Usage.PromptTokensDetails != nil {
+				return m.InternalResponse.Usage.PromptTokensDetails.CachedTokens
+			}
+			return 0
+		}(),
+		func() int64 {
+			if m.InternalResponse != nil && m.InternalResponse.Usage != nil {
+				return m.InternalResponse.Usage.CacheCreationInputTokens
+			}
+			return 0
+		}(),
+		func() int64 {
+			if m.InternalResponse != nil && m.InternalResponse.Usage != nil {
+				normal := m.InternalResponse.Usage.PromptTokens
+				if m.InternalResponse.Usage.PromptTokensDetails != nil {
+					normal -= m.InternalResponse.Usage.PromptTokensDetails.CachedTokens
+				}
+				normal -= m.InternalResponse.Usage.CacheCreationInputTokens
+				return normal
+			}
+			return 0
+		}())
 }
 
 // saveLog 保存日志

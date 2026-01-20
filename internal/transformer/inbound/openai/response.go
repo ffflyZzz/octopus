@@ -693,6 +693,10 @@ func (i *ResponseInbound) GetInternalResponse(ctx context.Context) (*model.Inter
 	return result, nil
 }
 
+func (i *ResponseInbound) GetInputTokens() int64 {
+	return 0
+}
+
 // formatSSEData formats data as SSE data line
 func formatSSEData(data []byte) []byte {
 	return []byte(fmt.Sprintf("data: %s\n\n", string(data)))

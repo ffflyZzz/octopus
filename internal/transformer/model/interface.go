@@ -19,6 +19,9 @@ type Inbound interface {
 	// 流式场景：将储存的流式响应聚合为完整的响应
 	// 非流式场景：返回储存的完整响应
 	GetInternalResponse(ctx context.Context) (*InternalLLMResponse, error)
+
+	// 获取入站请求计算出的输入 token 数
+	GetInputTokens() int64
 }
 
 type Outbound interface {

@@ -181,6 +181,10 @@ func (i *ChatInbound) GetInternalResponse(ctx context.Context) (*model.InternalL
 	return result, nil
 }
 
+func (i *ChatInbound) GetInputTokens() int64 {
+	return 0
+}
+
 // mergeToolCall merges a tool call delta into the existing tool calls slice
 func mergeToolCall(toolCalls []model.ToolCall, delta model.ToolCall) []model.ToolCall {
 	// Find existing tool call by index

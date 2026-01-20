@@ -122,7 +122,7 @@ func Handler(inboundType inbound.InboundType, c *gin.Context) {
 			}
 
 			if statusCode, err := rc.forward(); err == nil {
-				rc.collectResponse()
+				rc.collectResponse(c.Request.Context())
 				rc.usedKey.StatusCode = statusCode
 				rc.usedKey.LastUseTimeStamp = time.Now().Unix()
 				rc.usedKey.TotalCost += metrics.Stats.InputCost + metrics.Stats.OutputCost
@@ -135,7 +135,7 @@ func Handler(inboundType inbound.InboundType, c *gin.Context) {
 				op.ChannelKeyUpdate(rc.usedKey)
 				if c.Writer.Written() {
 					// Streaming responses may have already started; retrying would corrupt the client stream.
-					rc.collectResponse()
+					rc.collectResponse(c.Request.Context())
 					metrics.Save(c.Request.Context(), false, err)
 					return
 				}
@@ -406,10 +406,24 @@ func (rc *relayContext) handleResponse(ctx context.Context, response *http.Respo
 }
 
 // collectResponse 收集响应信息
-func (rc *relayContext) collectResponse() {
-	internalResponse, err := rc.inAdapter.GetInternalResponse(rc.c.Request.Context())
+func (rc *relayContext) collectResponse(ctx context.Context) {
+	internalResponse, err := rc.inAdapter.GetInternalResponse(ctx)
 	if err != nil || internalResponse == nil {
 		return
+	}
+
+	if internalResponse.Usage == nil {
+		estimatedTokens := rc.inAdapter.GetInputTokens()
+		if estimatedTokens > 0 {
+			log.Warnf("upstream did not return usage, using estimated input tokens: %d for model %s", estimatedTokens, rc.internalRequest.Model)
+		}
+		internalResponse.Usage = &model.Usage{
+			PromptTokens: estimatedTokens,
+		}
+	}
+
+	if internalResponse.Usage.TotalTokens == 0 && (internalResponse.Usage.PromptTokens != 0 || internalResponse.Usage.CompletionTokens != 0) {
+		internalResponse.Usage.TotalTokens = internalResponse.Usage.PromptTokens + internalResponse.Usage.CompletionTokens
 	}
 
 	// 设置响应内容

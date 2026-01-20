@@ -959,6 +959,10 @@ func (i *MessagesInbound) GetInternalResponse(ctx context.Context) (*model.Inter
 	return result, nil
 }
 
+func (i *MessagesInbound) GetInputTokens() int64 {
+	return i.inputToken
+}
+
 // mergeToolCall merges a tool call delta into the existing tool calls slice
 func mergeToolCall(toolCalls []model.ToolCall, delta model.ToolCall) []model.ToolCall {
 	// Find existing tool call by index
