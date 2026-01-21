@@ -247,6 +247,12 @@ func (o *MessageOutbound) TransformStream(ctx context.Context, eventData []byte)
 			usage := convertAnthropicUsage(streamEvent.Usage)
 			if o.streamUsage != nil {
 				usage.PromptTokens = o.streamUsage.PromptTokens
+				if usage.PromptTokensDetails == nil && o.streamUsage.PromptTokensDetails != nil {
+					usage.PromptTokensDetails = o.streamUsage.PromptTokensDetails
+				}
+				if usage.CacheCreationInputTokens == 0 && o.streamUsage.CacheCreationInputTokens != 0 {
+					usage.CacheCreationInputTokens = o.streamUsage.CacheCreationInputTokens
+				}
 				usage.TotalTokens = usage.PromptTokens + usage.CompletionTokens
 			}
 			o.streamUsage = usage
